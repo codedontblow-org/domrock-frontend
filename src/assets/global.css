@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+@theme {
+  /* ========================================
+     FONTS
+     ======================================== */
+
+  --font-inconsolata: "Inconsolata", monospace;
+  --font-source-code-pro: "Source Code Pro", monospace;
+  --font-raleway: "Raleway", sans-serif;
+  --font-forum: "Forum", serif;
+
+
+  /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+
+  --text-metadata: 12px;
+  --text-metadata--line-height: 12px;
+
+  --text-label: 14px;
+  --text-label--line-height: 15px;
+
+  --text-code: 14px;
+  --text-code--line-height: 18px;
+
+  --text-body: 16px;
+  --text-body--line-height: 16px;
+
+  --text-highlight-1: 18px;
+  --text-highlight-1--line-height: 16px;
+
+  --text-highlight-2: 16px;
+  --text-highlight-2--line-height: 18px;
+
+  --text-header-3: 20px;
+  --text-header-3--line-height: 22px;
+
+  --text-header-2: 24px;
+  --text-header-2--line-height: 28px;
+
+  --text-header-1: 44px;
+  --text-header-1--line-height: 44px;
+
+  --text-main-title: 56px;
+  --text-main-title--line-height: 54px;
+
+  --text-epic-title: 96px;
+  --text-epic-title--line-height: 100px;
+
+
+  /* ========================================
+     WHITE
+     ======================================== */
+
+  --color-white-bg1: var(--white-bg1);
+  --color-white-bg2: var(--white-bg2);
+  --color-white-txt1: var(--white-txt1);
+
+
+  /* ========================================
+     GRAY
+     ======================================== */
+
+  --color-gray-txt2: var(--gray-txt2);
+  --color-gray-txt3: var(--gray-txt3);
+  --color-gray-txt2-dark: var(--gray-txt2-dark);
+  --color-gray-txt3-dark: var(--gray-txt3-dark);
+
+
+  /* ========================================
+     BLACK
+     ======================================== */
+
+  --color-black-txt1: var(--black-txt1);
+  --color-black-bg1: var(--black-bg1);
+  --color-black-bg2: var(--black-bg2);
+
+
+  /* ========================================
+     PURPLE
+     ======================================== */
+
+  --color-purple: var(--purple);
+
+
+  /* ========================================
+     BLUE
+     ======================================== */
+
+  --color-blue: var(--blue);
+
+
+  /* ========================================
+     GREEN
+     ======================================== */
+
+  --color-green: var(--green);
+
+
+  /* ========================================
+     ORANGE
+     ======================================== */
+
+  --color-orange: var(--orange);
+
+
+  /* ========================================
+     RED
+     ======================================== */
+
+  --color-red: var(--red);
+}
+
+
+/* ==========================================
+   LIGHT THEME
+   ========================================== */
+
+:root {
+
+  /* White */
+
+  --white-bg1: #FFFFFF;
+  --white-bg2: #F1F2F4;
+
+
+  /* Gray */
+
+  --gray-txt2: #5D6169;
+  --gray-txt3: #7A7F87;
+
+
+  /* Black */
+
+  --black-txt1: #111214;
+
+  /* Purple */
+
+  --purple: #6F42C1;
+
+
+  /* Blue */
+
+  --blue: #008FC2;
+
+
+  /* Green */
+
+  --green: #398A49;
+
+
+  /* Orange */
+
+  --orange: #C66B1A;
+
+
+  /* Red */
+
+  --red: #C83E3C;
+}
+
+
+/* ==========================================
+   DARK THEME
+   ========================================== */
+
+.dark {
+
+  /* White */
+
+  --white-txt1: #F1F3F5;
+
+
+  /* Gray */
+
+  --gray-txt2-dark: #A9ADB5;
+  --gray-txt3-dark: #747981;
+
+
+  /* Black */
+
+  --black-bg1: #141416;
+  --black-bg2: #1B1C1E;
+
+
+  /* Purple */
+
+  --purple: #9B6DFF;
+
+
+  /* Blue */
+
+  --blue: #00B4F1;
+
+
+  /* Green */
+
+  --green: #64C073;
+
+
+  /* Orange */
+
+  --orange: #FAA353;
+
+
+  /* Red */
+
+  --red: #F06260;
+}
+
+
+/* ==========================================
+   BASE
+   ========================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--white-bg1);
+  color: var(--black-txt1);
+}
+
