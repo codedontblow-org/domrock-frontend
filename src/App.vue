@@ -9,10 +9,9 @@ import HelloWorld from './components/HelloWorld.vue'
 
     <div class="wrapper">
       <HelloWorld msg="Camplana AI" />
-
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
+        <RouterLink to="/chat">Chat</RouterLink>
       </nav>
     </div>
   </header>
