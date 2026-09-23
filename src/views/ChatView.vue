@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Input from '@/components/chat/Input.vue';
-import SpeechBubble from '@/components/chat/SpeechBubble.vue';
-import Button from '@/components/chat/Button.vue';
+import Input from '@/features/chat/components/Input.vue';
+import SpeechBubble from '@/features/chat/components/SpeechBubble.vue';
+import Button from '@/components/Button.vue';
 
 </script>
 
