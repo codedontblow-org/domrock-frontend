@@ -9,7 +9,7 @@ const messages = ref(["Hello world!", "The quicl brown fox jumps over the lazy d
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col w-full">
+  <div class="mx-auto flex min-h-screen flex-col w-full">
     <div class="flex flex-1 flex-col gap-2 items-end p-4">
       <SpeechBubble v-for="m in messages" :message="m"/>
     </div>

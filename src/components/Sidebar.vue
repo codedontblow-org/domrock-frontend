@@ -90,11 +90,12 @@ function selectItem(id: string): void {
 <style scoped>
 .sidebar {
   display: flex;
+  flex: 0 0 260px;
   flex-direction: column;
   width: 260px;
   height: 100vh;
-  background-color:black;
-  color: #e5e5e5;
+  background-color:var(--color-black-bg2);
+  color: var(--color-white-txt1);
   padding: 16px;
   box-sizing: border-box;
 }
@@ -106,15 +107,11 @@ function selectItem(id: string): void {
   margin-bottom: 24px;
 }
 
-.logo {
-  font-size: 14px;
-  letter-spacing: 1px;
-}
 
 .toggle-btn {
   background: none;
   border: none;
-  color: #e5e5e5;
+  color: var(--color-white-txt1);
   cursor: pointer;
 }
 
@@ -131,7 +128,7 @@ function selectItem(id: string): void {
   gap: 10px;
   background: none;
   border: none;
-  color: #cfcfcf;
+  color: var(--color-white-txt1);
   padding: 5px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -145,7 +142,7 @@ function selectItem(id: string): void {
 
 .menu-item.active {
   background-color: #2f2f2f;
-  color: #fff;
+  color: var(--color-white-txt1);
 }
 
 .sidebar-chats {
@@ -156,7 +153,7 @@ function selectItem(id: string): void {
 .chats-header {
   display: flex;
   justify-content: space-between;
-  color: #999;
+  color: var(--color-white-txt1);
   font-size: 12px;
   margin-bottom: 8px;
   padding: 0 8px;
@@ -173,7 +170,7 @@ function selectItem(id: string): void {
   justify-content: space-between;
   padding: 8px 8px;
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-white-txt1);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -183,7 +180,7 @@ function selectItem(id: string): void {
 }
 
 .chat-date {
-  color: #777;
+  color: var(--color-gray-txt2 );
   font-size: 11px;
 }
 
@@ -192,7 +189,7 @@ function selectItem(id: string): void {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--color-gray-txt3);
 }
 
 .user-name {
@@ -204,13 +201,13 @@ function selectItem(id: string): void {
 .user-role {
   display: block;
   font-size: 11px;
-  color: #888;
+  color: var(--color-gray-txt2);
 }
 
 .logout-btn {
   background: none;
   border: none;
-  color: #999;
+  color: var(--color-white-txt1);
   cursor: pointer;
 }
 </style>
