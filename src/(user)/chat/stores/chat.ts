@@ -37,8 +37,7 @@ export const useChatStore = defineStore('chat', () => {
       mensagens.value.push({
         id: crypto.randomUUID(),
         remetente: 'ia',
-        texto: 'Olá! Sou Lana, sua assistente especializada em estratégias de vendas...\n\n📊 Análise Atual de Vendas\n\nVendedores e Performance:\n• Ana Ribeiro: R$ 699,80\n...',
-        timestamp: Date.now(),
+        texto: 'Resposta simulada: o endpoint do backend ainda não está disponível.',        timestamp: Date.now(),
         simulado: true,
       })
       console.warn(`Falha ao chamar ${ROTA_CHAT}`, erro)
