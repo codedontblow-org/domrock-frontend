@@ -1,35 +1,58 @@
 <script setup lang="ts">
-import {ref} from 'vue'
+import { nextTick, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
+import ParametrosPanel from './components/ParametrosPanel.vue'
+import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
+import { useChatStore } from './stores/chat'
 
-const messages = ref<string[]>([])
+const chat = useChatStore()
+const { mensagens, regra, aguardandoLana, simulando, camposVazios, podeSimular } = storeToRefs(chat)
+const fimDaConversa = ref<HTMLElement | null>(null)
 
-function handleSend(message: string): void {
-  messages.value.push(message)
-}
+// Mantém a última mensagem (ou o resultado) visível quando algo novo chega.
+watch(() => mensagens.value.length, async () => {
+  await nextTick()
+  fimDaConversa.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+})
 </script>
 
 <template>
-  <div 
+  <div
     class="chat-page"
-    :class="{'empty-state': messages.length === 0 }">
-    <div v-if="messages.length === 0" class="welcome">
-      <h1>Olá, Roberval!</h1>
-      <p>O que você tem em mente hoje?</p>
+    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
+    <div class="conversa">
+      <div v-if="mensagens.length === 0" class="welcome">
+        <h1>Olá, Roberval!</h1>
+        <p>O que você tem em mente hoje?</p>
+      </div>
+
+      <div v-else class="messages" aria-live="polite">
+        <template v-for="mensagem in mensagens" :key="mensagem.id">
+          <ResultadoSimulacao v-if="mensagem.resultado" :resultado="mensagem.resultado" />
+          <SpeechBubble v-else :message="mensagem.texto" :papel="mensagem.papel" />
+        </template>
+        <p v-if="aguardandoLana" class="pensando">A Lana está escrevendo…</p>
+        <p v-if="simulando" class="pensando">A Lana está gerando o código da regra e simulando sobre os dados reais…</p>
+        <div ref="fimDaConversa" class="fim-da-conversa" />
+      </div>
+
+      <div class="chat-input">
+        <Input @send="chat.enviar"/>
+      </div>
     </div>
 
-    <div v-else class="messages">
-      <SpeechBubble
-        v-for="(message, index) in messages"
-        :key="index"
-        :message="message"
+    <aside v-if="regra" class="ficha-lateral">
+      <ParametrosPanel
+        :regra="regra"
+        :campos-vazios="camposVazios"
+        :pode-simular="podeSimular"
+        :simulando="simulando"
+        @alterar="chat.atualizarParametro"
+        @simular="chat.simular"
       />
-    </div>
-
-    <div class="chat-input">
-      <Input @send="handleSend"/>
-    </div>
+    </aside>
   </div>
 </template>
 
@@ -78,11 +101,63 @@ function handleSend(message: string): void {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 12px;
   padding-bottom: 16px;
 }
 
 .chat-input {
+  position: sticky;
+  bottom: 0;
   width: 100%;
+  padding-bottom: 16px;
+  background-color: var(--color-black-bg1);
+}
+
+.conversa {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: inherit;
+  justify-content: inherit;
+}
+
+.com-ficha {
+  max-width: 1100px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.ficha-lateral {
+  position: sticky;
+  top: 20px;
+  width: 340px;
+  flex-shrink: 0;
+}
+
+.fim-da-conversa {
+  /* A caixa de mensagem é fixa no rodapé; sem a margem, o fim do resultado ficaria atrás dela. */
+  scroll-margin-bottom: 140px;
+}
+
+.pensando {
+  align-self: flex-start;
+  color: var(--color-gray-txt2-dark);
+  font-family: var(--font-raleway);
+  font-size: 14px;
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .com-ficha {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .ficha-lateral {
+    position: static;
+    width: 100%;
+  }
 }
 </style>
