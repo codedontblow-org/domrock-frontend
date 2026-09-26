@@ -224,3 +224,10 @@ body,
   min-height: 100%;
 }
 
+
+/* O app é sempre escuro (main.ts adiciona .dark), mas base.css só escurece o body com
+   prefers-color-scheme: dark; num sistema em modo claro o texto branco sumia no fundo branco. */
+.dark body {
+  background-color: var(--color-black-bg1);
+  color: var(--color-white-txt1);
+}
