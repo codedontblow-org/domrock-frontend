@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import TheWelcome from '../components/TheWelcome.vue'
+import ChatPage from '../(user)/chat/Page.vue'
+
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <ChatPage />
   </main>
 </template>

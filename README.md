@@ -2,7 +2,7 @@
 
 O desafio consiste no desenvolvimento de um sistema para gerenciamento de regras de negócio. Este repositório tem como objetivo alocar o front-end da aplicação web.
 
-Leia mais em [Repositório Principal](https://github.com/CodeDontBlow/DomRock-Camplana-AI)!
+Leia mais em [Repositório Principal](https://github.com/codedontblow-org/domrock-camplana)!
 
 
 ## 📂 **Estrutura do Projeto**
