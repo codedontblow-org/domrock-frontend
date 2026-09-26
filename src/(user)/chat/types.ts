@@ -59,6 +59,7 @@ export interface ResultadoSimulacao {
   origem_codigo: string
   tentativas: number
   explicacao: string
+  observacao?: string
 }
 
 export interface FalhaSimulacao {

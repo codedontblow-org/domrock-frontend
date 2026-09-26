@@ -80,6 +80,7 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
     </div>
 
     <div class="resultado-explicacao" v-html="explicacao" />
+    <p v-if="resultado.observacao" class="resultado-observacao">{{ resultado.observacao }}</p>
 
     <details class="resultado-codigo">
       <summary>Ver o código Python que calculou a regra</summary>
@@ -209,6 +210,12 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 
 .resultado-explicacao :deep(strong) {
   font-weight: 700;
+}
+
+.resultado-observacao {
+  margin-top: 12px;
+  color: var(--color-gray-txt2-dark);
+  font-size: 13px;
 }
 
 .resultado-codigo {
