@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
+
+const isCollapsed = ref(false)
+
+function toggleSidebar(): void {
+  isCollapsed.value = !isCollapsed.value
+}
 
 const menuItems: MenuItem[] = [
     //pluscircle  
@@ -36,16 +43,26 @@ function selectItem(id: string): void {
 </script>
 
 <template>
-  <aside class="sidebar">
-    <!-- Header -->
+  <aside 
+    class="sidebar"
+    :class="{ 'sidebar--collapsed': isCollapsed}">
     <div class="sidebar-header">
-      <span class="text-header-2 text-white-txt1 font-inconsolata">CAMP<strong class="text-blue">LANA</strong></span>
-      <button class="toggle-btn">
-        <i class="bi bi-layout-sidebar text-sm"></i>
+      <span class="brand-name">
+        CAMP<strong class="brand-accent">LANA</strong>
+      </span>
+
+      <img :src="logo" alt="Logo" class="logo" />
+
+      <button 
+        class="toggle-btn"
+        type="button"
+        aria-label="Alternar barra lateral"
+        :aria-expanded="!isCollapsed"
+        @click="toggleSidebar">
+        <i class="sidebar-icon bi bi-layout-sidebar"></i>
       </button>
     </div>
 
-    <!-- Menu de navegação -->
     <nav class="sidebar-menu">
       <button
         v-for="item in menuItems"
@@ -54,41 +71,56 @@ function selectItem(id: string): void {
         :class="{ active: activeItem === item.id }"
         @click="selectItem(item.id)"
       >
-        <i :class="item.icon" ></i>
-        <span class="text-highlight-2 font-raleway">{{ item.label }}</span>
+        <i :class="[item.icon, 'menu-icon']"></i>
+        <span class="menu-label">{{ item.label }}</span>
       </button>
     </nav>
 
-    <!-- Lista de chats -->
     <div class="sidebar-chats">
       <div class="chats-header">
-        <span class="text-body  text-gray-txt2">Seus Chats</span>
-        <i class="bi bi-arrow-down-up"></i>
+        <span class="chats-title">Seus Chats</span>
+        <i class="chats-sort-icon bi bi-arrow-down-up"></i>
       </div>
 
       <ul class="chats-list">
-        <li v-for="chat in chats" :key="chat.id" class="chat-item">
-          <span class="chat-title text-label font-inconsolata">{{ chat.titulo }}</span>
-          <span class="chat-date text-metadata font-inconsolata">{{ chat.data }}</span>
+        <li
+          v-for="chat in chats"
+          :key="chat.id"
+          class="chat-item"
+        >
+          <span class="chat-title">{{ chat.titulo }}</span>
+          <span class="chat-date">{{ chat.data }}</span>
         </li>
       </ul>
     </div>
 
-    <!-- Footer do usuário -->
     <div class="sidebar-footer">
       <div class="user-info">
-        <span class="user-name text-body">{{ user.nome }}</span>
-        <span class="user-role text-metadata">{{ user.cargo }}</span>
+        <span class="user-name">{{ user.nome }}</span>
+        <span class="user-role">{{ user.cargo }}</span>
       </div>
+
       <button class="logout-btn">
-        <i class="bi bi-power"></i>
+        <i class="logout-icon bi bi-power"></i>
       </button>
     </div>
   </aside>
 </template>
 
 <style scoped>
+
+.logo {
+  width: 32px;
+  height: auto;
+  display: block;
+  margin-left: 8px;
+}
+
 .sidebar {
+  transition: 
+    width 0.25s ease,
+    flex-basis 0.25s ease,
+    padding 0.25s ease;
   display: flex;
   flex: 0 0 260px;
   flex-direction: column;
@@ -100,15 +132,59 @@ function selectItem(id: string): void {
   box-sizing: border-box;
 }
 
+.sidebar--collapsed {
+  flex-basis: 72px;
+  width: 72px;
+  padding: 16px 8px;
+}
+
+.sidebar--collapsed .sidebar-header {
+  justify-content: center;
+}
+
+.sidebar--collapsed {
+  flex-basis: 56px;
+  width: 56px;
+  padding: 16px 8px;
+}
+
+.sidebar--collapsed .sidebar-header {
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.sidebar--collapsed .brand-name,
+.sidebar--collapsed .logo,
+.sidebar--collapsed .sidebar-menu,
+.sidebar--collapsed .sidebar-chats,
+.sidebar--collapsed .sidebar-footer {
+  display: none;
+}
+
+.sidebar--collapsed .toggle-btn {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+  padding: 0;
+}
+
+.sidebar--collapsed .toggle-btn {
+  margin-left: 0;
+}
+
 .sidebar-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 24px;
 }
 
 
 .toggle-btn {
+  margin-left: auto;
   background: none;
   border: none;
   color: var(--color-white-txt1);
@@ -209,5 +285,78 @@ function selectItem(id: string): void {
   border: none;
   color: var(--color-white-txt1);
   cursor: pointer;
+}
+
+.brand-name {
+  color: var(--color-white-txt1);
+  font-family: var(--font-inconsolata);
+  font-size: 24px;
+  line-height: 28px;
+}
+
+.brand-accent {
+  color: var(--color-blue);
+}
+
+.sidebar-icon {
+  font-size: 14px;
+}
+
+.menu-icon {
+  width: 18px;
+  color: var(--color-white-txt1);
+  font-size: 16px;
+}
+
+.menu-label {
+  color: var(--color-white-txt1);
+  font-family: var(--font-raleway);
+  font-size: 16px;
+  line-height: 18px;
+}
+
+.chats-title {
+  color: var(--color-gray-txt2);
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.chats-sort-icon {
+  color: var(--color-gray-txt2);
+  font-size: 14px;
+}
+
+.chat-title {
+  color: var(--color-white-txt1);
+  font-family: var(--font-inconsolata);
+  font-size: 14px;
+  line-height: 15px;
+}
+
+.chat-date {
+  color: var(--color-gray-txt2);
+  font-family: var(--font-inconsolata);
+  font-size: 12px;
+  line-height: 12px;
+}
+
+.user-name {
+  display: block;
+  color: var(--color-white-txt1);
+  font-size: 16px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+.user-role {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-gray-txt2);
+  font-size: 12px;
+  line-height: 12px;
+}
+
+.logout-icon {
+  font-size: 16px;
 }
 </style>

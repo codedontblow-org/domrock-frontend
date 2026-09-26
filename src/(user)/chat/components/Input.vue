@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import Button from '@/components/Button.vue'
 
 withDefaults(
   defineProps<{
@@ -18,7 +19,6 @@ const emit = defineEmits<{
 
 const message = ref("");
 const isRecording = ref(false);
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 function handleSend() {
   const text = message.value.trim();
@@ -28,8 +28,8 @@ function handleSend() {
   message.value = "";
 }
 
-function toggleRecording() {
-  isRecording.value = !isRecording.value;
+function toggleRecording(): void {
+  isRecording.value = !isRecording.value
 
   if (isRecording.value) {
     emit("record-start");
@@ -41,38 +41,73 @@ function toggleRecording() {
 
 <template>
   <div
-    class="flex h-16 items-center gap-2 rounded-md bg-black-bg2 px-4 shadow-sm ring-1 ring-white/5 focus-within:ring-blue/40 transition-colors"
+    class="chat-input"
   >
     <textarea
-      ref="textareaRef"
       v-model="message"
       rows="1"
       :placeholder="placeholder"
-      class="flex-1 h-full resize-none overflow-y-auto bg-transparent text-body leading-[1.4] text-white-txt1 placeholder-gray-txt3-dark placeholder:font-inconsolata outline-none py-3.5"
+      class="chat-textarea"
       @keydown.enter.exact.prevent="handleSend"
     />
 
-    <div class="flex shrink-0 items-center gap-2">
-      <button
-        type="button"
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black-bg1 text-gray-txt3-dark ring-1 ring-white/10 transition-colors hover:text-white-txt1"
-        :aria-pressed="isRecording"
-        aria-label="Gravar áudio"
-        @click="toggleRecording"
-      >
-        <i :class="['bi', isRecording ? 'bi-mic-fill text-red' : 'bi-mic']" class="text-base"></i>
-      </button>
+<div class="chat-actions">
+  <Button
+    v-if="!message.trim()"
+    variant="record"
+    :active="isRecording"
+    @click="toggleRecording"
+  />
 
-      <button
-        type="button"
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue text-white-bg1 transition-opacity  disabled:cursor-not-allowed"
-        aria-label="Enviar mensagem"
-        :disabled="!message.trim()"
-        @click="handleSend"
-      >
-        <i class="bi bi-send-fill text-sm"></i>
-      </button>
-    </div>
+  <Button
+    v-else
+    variant="send"
+    @click="handleSend"
+  />
+</div>
   </div>
 </template>
 
+<style scoped>
+  .chat-input {
+  display: flex;
+  height: 100px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background-color: var(--color-black-bg2);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 5%);
+  transition: box-shadow 0.2s;
+  }
+
+  .chat-input:focus-within {
+    box-shadow: 0 0 0 1px rgb(0 180 241 / 40%);
+  }
+
+  .chat-textarea {
+    height: 100%;
+    flex: 1;
+    padding: 14px 0;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow-y: auto;
+    background-color: transparent;
+    color: var(--color-white-txt1);
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  .chat-textarea::placeholder {
+    color: var(--color-gray-txt3-dark);
+    font-family: var(--font-inconsolata);
+  }
+
+  .chat-actions {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+  }
+</style>

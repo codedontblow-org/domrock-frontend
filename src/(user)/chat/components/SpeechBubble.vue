@@ -11,12 +11,22 @@ withDefaults(
 </script>
 
 <template>
-  <div class="relative inline-block max-w-md self-end">
-    <div
-      class="rounded-t-md rounded-bl-md bg-blue px-3 py-2 font-inconsolata text-xs leading-[1.2] text-white"
-    >
-      {{ message }}
-    </div>
-
+  <div class="speech-bubble">
+    {{ message }}
   </div>
 </template>
+
+<style scoped>
+  .speech-bubble {
+    display: inline-block;
+    max-width: 448px;
+    align-self: flex-end;
+    padding: 8px 12px;
+    border-radius: 6px 6px 0 6px;
+    background-color: var(--color-blue);
+    color: var(--color-white-txt1);
+    font-family: var(--font-inconsolata);
+    font-size: 12px;
+    line-height: 1.2;
+  }
+</style>
