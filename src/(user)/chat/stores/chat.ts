@@ -25,17 +25,20 @@ export const useChatStore = defineStore('chat', () => {
   const camposVazios = computed(() =>
     (regra.value?.parametros ?? []).filter((p) => p.required && estaVazio(p.value)).map((p) => p.key),
   )
-  const podeSimular = computed(() => regra.value !== null && camposVazios.value.length === 0 && !simulando.value)
+  const ocupado = computed(() => aguardandoLana.value || simulando.value)
+  const podeSimular = computed(() => regra.value !== null && camposVazios.value.length === 0 && !ocupado.value)
 
   function adicionar(papel: PapelMensagem, texto: string, extras: Partial<MensagemChat> = {}): void {
     mensagens.value.push({ id: mensagens.value.length + 1, papel, texto, ...extras })
   }
 
   async function enviar(texto: string): Promise<void> {
+    // Um turno por vez: dois envios no mesmo chat embaralham o histórico do agente.
+    if (ocupado.value) return
     adicionar('usuario', texto)
     aguardandoLana.value = true
     try {
-      const resposta = await servicoCampanha.conversar(chatId.value, texto)
+      const resposta = await servicoCampanha.conversar(chatId.value, texto, regra.value)
       adicionar('agente', resposta.response)
       if (resposta.regra) regra.value = resposta.regra
     } catch (erro) {
@@ -64,7 +67,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    chatId, mensagens, regra, aguardandoLana, simulando, camposVazios, podeSimular,
+    chatId, mensagens, regra, aguardandoLana, simulando, ocupado, camposVazios, podeSimular,
     enviar, atualizarParametro, simular,
   }
 })

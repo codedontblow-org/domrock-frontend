@@ -62,4 +62,25 @@ describe('useChatStore', () => {
     expect(chat.mensagens[chat.mensagens.length - 1]).toMatchObject({ papel: 'erro', texto: 'Revise a campanha: orcamento_limite: obrigatório' })
     expect(chat.simulando).toBe(false)
   })
+
+  it('manda ao agente o painel com as edições do usuário', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Black Friday')
+    chat.atualizarParametro('pct_acrescimo', 2)
+
+    await chat.enviar('só a marca 30')
+
+    const pct = servico.conversas[1]?.regra?.parametros.find((p) => p.key === 'pct_acrescimo')
+    expect(pct?.value).toBe(2)
+  })
+
+  it('ignora um segundo envio enquanto a Lana ainda responde', async () => {
+    const chat = useChatStore()
+
+    const primeiro = chat.enviar('um')
+    await chat.enviar('dois')
+    await primeiro
+
+    expect(servico.conversas.map((c) => c.mensagem)).toEqual(['um'])
+  })
 })

@@ -2,12 +2,15 @@
 import { ref } from "vue";
 import Button from '@/components/Button.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     placeholder?: string;
+    // Enquanto a Lana responde ou simula: dá para digitar, mas não para enviar.
+    ocupado?: boolean;
   }>(),
   {
     placeholder: "Descreva sua campanha para a Lana!",
+    ocupado: false,
   },
 );
 
@@ -22,7 +25,7 @@ const isRecording = ref(false);
 
 function handleSend() {
   const text = message.value.trim();
-  if (!text) return;
+  if (!text || props.ocupado) return;
 
   emit("send", text);
   message.value = "";
@@ -62,6 +65,7 @@ function toggleRecording(): void {
   <Button
     v-else
     variant="send"
+    :disabled="ocupado"
     @click="handleSend"
   />
 </div>

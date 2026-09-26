@@ -7,9 +7,10 @@ export interface OpcaoParametro {
   label: string
 }
 
+// Uma das pontas pode vir null quando o usuário só disse "a partir de 24/11".
 export interface Periodo {
-  data_inicio: string
-  data_fim: string
+  data_inicio: string | null
+  data_fim: string | null
 }
 
 export type ValorParametro = Periodo | number | string[] | null

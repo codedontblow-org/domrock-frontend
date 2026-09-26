@@ -49,14 +49,14 @@ export function resultadoBlackFriday(cabe = true): ResultadoSimulacao {
 
 /** Serviço de campanha em memória: registra as chamadas e devolve respostas programadas. */
 export class FakeServicoCampanha implements ServicoCampanha {
-  conversas: Array<{ chatId: string; mensagem: string }> = []
+  conversas: Array<{ chatId: string; mensagem: string; regra: RegraCampanha | null }> = []
   simulacoes: RegraCampanha[] = []
   respostaChat: RespostaChat = { chat_id: 'c', response: 'Anotado!', regra: regraBlackFriday() }
   resultado: ResultadoSimulacao = resultadoBlackFriday()
   falha: unknown = null
 
-  async conversar(chatId: string, mensagem: string): Promise<RespostaChat> {
-    this.conversas.push({ chatId, mensagem })
+  async conversar(chatId: string, mensagem: string, regra: RegraCampanha | null): Promise<RespostaChat> {
+    this.conversas.push({ chatId, mensagem, regra: regra ? JSON.parse(JSON.stringify(regra)) : null })
     if (this.falha) throw this.falha
     return this.respostaChat
   }

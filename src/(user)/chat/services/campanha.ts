@@ -4,8 +4,9 @@ import type { FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao } 
 /** Chamadas do chat ao Spring (que repassa à Lana). Recebe o cliente HTTP para ser testável. */
 export function criarServicoCampanha(http: AxiosInstance) {
   return {
-    async conversar(chatId: string, mensagem: string): Promise<RespostaChat> {
-      const { data } = await http.post<RespostaChat>('/api/chat', { chat_id: chatId, message: mensagem })
+    /** `regra` leva o painel como está (com edições), para a Lana partir dele. */
+    async conversar(chatId: string, mensagem: string, regra: RegraCampanha | null): Promise<RespostaChat> {
+      const { data } = await http.post<RespostaChat>('/api/chat', { chat_id: chatId, message: mensagem, regra })
       return data
     },
 

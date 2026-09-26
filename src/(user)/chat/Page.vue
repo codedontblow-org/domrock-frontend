@@ -39,7 +39,7 @@ watch(() => mensagens.value.length, async () => {
       </div>
 
       <div class="chat-input">
-        <Input @send="chat.enviar"/>
+        <Input :ocupado="aguardandoLana || simulando" @send="chat.enviar"/>
       </div>
     </div>
 
