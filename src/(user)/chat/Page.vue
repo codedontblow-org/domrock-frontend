@@ -1,34 +1,32 @@
 <script setup lang="ts">
-import {ref} from 'vue'
 import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
+import { useChatStore } from './stores/chat'
 
-const messages = ref<string[]>([])
-
-function handleSend(message: string): void {
-  messages.value.push(message)
-}
+const chat = useChatStore()
 </script>
 
 <template>
   <div 
     class="chat-page"
-    :class="{'empty-state': messages.length === 0 }">
-    <div v-if="messages.length === 0" class="welcome">
+    :class="{'empty-state': chat.mensagens.length === 0 }">
+    <div v-if="chat.mensagens.length === 0" class="welcome">
       <h1>Olá, Roberval!</h1>
       <p>O que você tem em mente hoje?</p>
     </div>
 
     <div v-else class="messages">
       <SpeechBubble
-        v-for="(message, index) in messages"
-        :key="index"
-        :message="message"
+        v-for="mensagem in chat.mensagens"
+        :key="mensagem.id"
+        :message="mensagem.texto"
+        :remetente="mensagem.remetente"
+        :simulado="mensagem.simulado"
       />
     </div>
 
     <div class="chat-input">
-      <Input @send="handleSend"/>
+      <Input @send="chat.enviarMensagem"/>
     </div>
   </div>
 </template>
@@ -80,6 +78,7 @@ function handleSend(message: string): void {
   align-items: flex-end;
   gap: 8px;
   padding-bottom: 16px;
+  overflow-y: auto;
 }
 
 .chat-input {
