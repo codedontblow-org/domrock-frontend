@@ -65,7 +65,7 @@ watch(() => mensagens.value.length, async () => {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  padding: 20px 0 16px 0;
+  padding: 20px 24px 0;
 }
 
 .empty-state {
@@ -82,7 +82,7 @@ watch(() => mensagens.value.length, async () => {
 .welcome h1 {
   color: var(--color-white-txt1);
   font-family: var(--font-forum);
-  font-size: 96px;
+  font-size: clamp(48px, 9vw, 96px);
   font-weight: 400;
   line-height: 1;
   margin: 0;
@@ -91,7 +91,7 @@ watch(() => mensagens.value.length, async () => {
 .welcome p {
   font-family: var(--font-forum);
   color: var(--color-white-txt2);
-  font-size: 44px;
+  font-size: clamp(24px, 4vw, 44px);
   line-height: 1.1;
   margin: -4px 0 0;
 }
@@ -129,10 +129,11 @@ watch(() => mensagens.value.length, async () => {
   gap: 24px;
 }
 
+/* Fixa ao lado da conversa; o painel rola por dentro e o botão Simular fica sempre visível. */
 .ficha-lateral {
   position: sticky;
-  top: 20px;
-  width: 340px;
+  top: 16px;
+  width: 360px;
   flex-shrink: 0;
 }
 
@@ -150,14 +151,25 @@ watch(() => mensagens.value.length, async () => {
 }
 
 @media (max-width: 900px) {
+  /* Espaço no topo para o botão flutuante da barra lateral. */
+  .chat-page {
+    padding: 60px 16px 0;
+  }
+
   .com-ficha {
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: stretch;
   }
 
+  /* No celular a ficha vem antes da conversa, para o usuário ver o que falta preencher. */
   .ficha-lateral {
     position: static;
+    order: -1;
     width: 100%;
+  }
+
+  .ficha-lateral :deep(.ficha) {
+    max-height: none;
   }
 }
 </style>

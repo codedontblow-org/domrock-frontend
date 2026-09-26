@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ParametroCampo from './ParametroCampo.vue'
 import type { RegraCampanha, ValorParametro } from '../types'
 
@@ -15,32 +15,53 @@ const emit = defineEmits<{
   simular: []
 }>()
 
+const comandoAberto = ref(false)
 const regras = computed(() => props.regra.parametros.filter((p) => p.categoria === 'REGRA'))
 const limites = computed(() => props.regra.parametros.filter((p) => p.categoria === 'CONSTRAINT'))
+const pendentes = computed(() => props.camposVazios.length)
+
+const status = computed(() => {
+  if (pendentes.value === 0) return 'Pronta para simular'
+  return pendentes.value === 1 ? '1 pendente' : `${pendentes.value} pendentes`
+})
 
 const aviso = computed(() => {
-  if (props.simulando) return 'A Lana está gerando o código da regra e rodando sobre os dados reais.'
-  const quantos = props.camposVazios.length
-  if (quantos === 0) return 'Revise os valores. A simulação usa exatamente o que está aqui.'
-  return quantos === 1 ? 'Preencha 1 campo para simular.' : `Preencha ${quantos} campos para simular.`
+  if (props.simulando) return 'Gerando o código da regra e simulando sobre os dados reais.'
+  if (pendentes.value > 0) return 'Preencha os campos em laranja para simular.'
+  return 'A simulação usa exatamente os valores acima.'
 })
 </script>
 
 <template>
   <section class="ficha" aria-labelledby="ficha-titulo">
-    <h2 id="ficha-titulo" class="ficha-titulo">Campanha</h2>
-    <blockquote v-if="regra.raw_prompt" class="ficha-comando">{{ regra.raw_prompt }}</blockquote>
+    <header class="ficha-cabecalho">
+      <h2 id="ficha-titulo" class="ficha-titulo">Campanha</h2>
+      <span class="ficha-status" :class="pendentes ? 'ficha-status--pendente' : 'ficha-status--pronta'">
+        {{ status }}
+      </span>
+    </header>
 
-    <h3 class="ficha-grupo">Regra</h3>
-    <ParametroCampo v-for="p in regras" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
-
-    <h3 class="ficha-grupo">Limites</h3>
-    <ParametroCampo v-for="p in limites" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
-
-    <p class="ficha-aviso" aria-live="polite">{{ aviso }}</p>
-    <button type="button" class="ficha-simular" :disabled="!podeSimular" @click="emit('simular')">
-      {{ simulando ? 'Simulando…' : 'Simular campanha' }}
+    <button v-if="regra.raw_prompt" type="button" class="ficha-comando"
+      :class="{ 'ficha-comando--aberto': comandoAberto }" :aria-expanded="comandoAberto"
+      :title="comandoAberto ? 'Recolher o comando' : 'Ver o comando completo'" @click="comandoAberto = !comandoAberto">
+      {{ regra.raw_prompt }}
     </button>
+
+    <div class="ficha-corpo">
+      <div class="ficha-grupo" aria-label="Regra">
+        <ParametroCampo v-for="p in regras" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
+      </div>
+      <div class="ficha-grupo ficha-grupo--limites" aria-label="Limites">
+        <ParametroCampo v-for="p in limites" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
+      </div>
+    </div>
+
+    <footer class="ficha-rodape">
+      <button type="button" class="ficha-simular" :disabled="!podeSimular" @click="emit('simular')">
+        {{ simulando ? 'Simulando…' : 'Simular campanha' }}
+      </button>
+      <p class="ficha-aviso" aria-live="polite">{{ aviso }}</p>
+    </footer>
   </section>
 </template>
 
@@ -48,47 +69,93 @@ const aviso = computed(() => {
 .ficha {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 20px;
-  border-radius: 6px;
+  max-height: calc(100dvh - 32px);
+  border-radius: 8px;
   background-color: var(--color-black-bg2);
+  overflow: hidden;
+}
+
+.ficha-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 0;
 }
 
 .ficha-titulo {
   color: var(--color-white-txt1);
   font-family: var(--font-forum);
-  font-size: 32px;
+  font-size: 26px;
   line-height: 1;
 }
 
+.ficha-status {
+  font-family: var(--font-raleway);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ficha-status--pendente {
+  color: var(--color-orange);
+}
+
+.ficha-status--pronta {
+  color: var(--color-green);
+}
+
+/* O comando original fica em 2 linhas; um clique mostra inteiro. */
 .ficha-comando {
-  margin: 8px 0 4px;
-  color: var(--color-gray-txt2-dark);
+  display: -webkit-box;
+  margin: 8px 16px 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-gray-txt3-dark);
   font-family: var(--font-raleway);
-  font-size: 13px;
+  font-size: 12px;
   font-style: italic;
-  line-height: 1.5;
+  line-height: 1.45;
+  text-align: left;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  cursor: pointer;
 }
 
-.ficha-grupo {
-  margin-top: 16px;
-  color: var(--color-white-txt1);
-  font-family: var(--font-raleway);
-  font-size: 14px;
-  font-weight: 600;
+.ficha-comando--aberto {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
 }
 
-.ficha-aviso {
-  margin-top: 16px;
-  color: var(--color-gray-txt2-dark);
-  font-family: var(--font-raleway);
-  font-size: 13px;
-  line-height: 1.4;
+.ficha-comando:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+.ficha-corpo {
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  padding: 0 16px;
+  overflow-y: auto;
+}
+
+.ficha-grupo--limites {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.ficha-rodape {
+  padding: 12px 16px 14px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
 }
 
 .ficha-simular {
-  margin-top: 10px;
-  padding: 12px;
+  width: 100%;
+  padding: 10px;
   border: none;
   border-radius: 6px;
   background-color: var(--color-blue);
@@ -108,5 +175,14 @@ const aviso = computed(() => {
 .ficha-simular:focus-visible {
   outline: 2px solid var(--color-white-txt1);
   outline-offset: 2px;
+}
+
+.ficha-aviso {
+  margin-top: 8px;
+  color: var(--color-gray-txt3-dark);
+  font-family: var(--font-raleway);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
 }
 </style>

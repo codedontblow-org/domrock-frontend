@@ -1,13 +1,31 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
 
+// Abaixo desta largura a barra começa recolhida e, aberta, fica por cima do conteúdo.
+const CONSULTA_CELULAR = '(max-width: 900px)'
+
 const isCollapsed = ref(false)
+const isMobile = ref(false)
+let consultaCelular: MediaQueryList | null = null
 
 function toggleSidebar(): void {
   isCollapsed.value = !isCollapsed.value
 }
+
+function acompanharLargura(consulta: MediaQueryList | MediaQueryListEvent): void {
+  isMobile.value = consulta.matches
+  isCollapsed.value = consulta.matches
+}
+
+onMounted(() => {
+  consultaCelular = window.matchMedia(CONSULTA_CELULAR)
+  acompanharLargura(consultaCelular)
+  consultaCelular.addEventListener('change', acompanharLargura)
+})
+
+onBeforeUnmount(() => consultaCelular?.removeEventListener('change', acompanharLargura))
 
 const menuItems: MenuItem[] = [
     //pluscircle  
@@ -39,13 +57,19 @@ const activeItem = ref<string>('nova-campanha')
 
 function selectItem(id: string): void {
   activeItem.value = id
+  if (isMobile.value) isCollapsed.value = true
 }
 </script>
 
 <template>
+  <div v-if="isMobile && !isCollapsed" class="sidebar-fundo" aria-hidden="true" @click="toggleSidebar" />
   <aside 
     class="sidebar"
-    :class="{ 'sidebar--collapsed': isCollapsed}">
+    :class="{
+      'sidebar--collapsed': isCollapsed,
+      'sidebar--sobreposta': isMobile && !isCollapsed,
+      'sidebar--flutuante': isMobile && isCollapsed,
+    }">
     <div class="sidebar-header">
       <span class="brand-name">
         CAMP<strong class="brand-accent">LANA</strong>
@@ -125,21 +149,15 @@ function selectItem(id: string): void {
   flex: 0 0 260px;
   flex-direction: column;
   width: 260px;
-  height: 100vh;
+  /* Acompanha a rolagem: a conversa rola, a barra fica na altura da janela. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100dvh;
   background-color:var(--color-black-bg2);
   color: var(--color-white-txt1);
   padding: 16px;
   box-sizing: border-box;
-}
-
-.sidebar--collapsed {
-  flex-basis: 72px;
-  width: 72px;
-  padding: 16px 8px;
-}
-
-.sidebar--collapsed .sidebar-header {
-  justify-content: center;
 }
 
 .sidebar--collapsed {
@@ -171,8 +189,39 @@ function selectItem(id: string): void {
   padding: 0;
 }
 
-.sidebar--collapsed .toggle-btn {
-  margin-left: 0;
+.sidebar--sobreposta {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  box-shadow: 8px 0 24px rgb(0 0 0 / 45%);
+}
+
+/* Celular recolhido: sobra só o botão de abrir, flutuando, e a conversa usa a largura toda. */
+.sidebar--flutuante {
+  position: fixed;
+  z-index: 30;
+  top: 10px;
+  left: 10px;
+  width: auto;
+  height: auto;
+  flex-basis: auto;
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 40%);
+}
+
+.sidebar-fundo {
+  position: fixed;
+  z-index: 29;
+  inset: 0;
+  background-color: rgb(0 0 0 / 50%);
+}
+
+.toggle-btn:focus-visible,
+.menu-item:focus-visible,
+.logout-btn:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
 }
 
 .sidebar-header {

@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatarMoeda, formatarPercentual, renderizarMarkdown } from '../formatacao'
+import { NOMES_CARGO, NOMES_MARCA } from '../rotulos'
 import type { QuebraDimensao, ResultadoSimulacao } from '../types'
-
-const NOMES_MARCA: Record<string, string> = {
-  '10': 'Preto', '20': 'Branco', '30': 'Azul', '40': 'Vermelho', '50': 'Amarelo', '60': 'Cinza',
-}
-const NOMES_CARGO: Record<string, string> = {
-  '100': 'Vendedor loja', '150': 'Gerente', '200': 'Vendedor balcão', '300': 'Assistente de vendas',
-}
 
 const props = defineProps<{ resultado: ResultadoSimulacao }>()
 

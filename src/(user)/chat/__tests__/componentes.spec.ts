@@ -21,7 +21,7 @@ describe('ParametroCampo', () => {
   it('escolher uma marca específica desmarca "Todas as marcas"', async () => {
     const wrapper = mount(ParametroCampo, { props: { parametro: parametro('marcas_alvo') } })
 
-    await wrapper.findAll('button').find((b) => b.text() === 'AZUL (30)')?.trigger('click')
+    await wrapper.findAll('button').find((b) => b.text() === 'Azul')?.trigger('click')
 
     expect(wrapper.emitted('alterar')?.[0]).toEqual([['30']])
   })
@@ -42,12 +42,21 @@ describe('ParametroCampo', () => {
 })
 
 describe('ParametrosPanel', () => {
+  it('mostra que a campanha está pronta quando nada falta', () => {
+    const wrapper = mount(ParametrosPanel, {
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false },
+    })
+
+    expect(wrapper.find('.ficha-status').text()).toBe('Pronta para simular')
+    expect(wrapper.find('.ficha-simular').attributes('disabled')).toBeUndefined()
+  })
+
   it('bloqueia o botão e diz quantos campos faltam', () => {
     const wrapper = mount(ParametrosPanel, {
       props: { regra: regraBlackFriday(), camposVazios: ['meta_vendas', 'orcamento_limite'], podeSimular: false, simulando: false },
     })
 
-    expect(wrapper.text()).toContain('Preencha 2 campos para simular.')
+    expect(wrapper.find('.ficha-status').text()).toBe('2 pendentes')
     expect(wrapper.find('.ficha-simular').attributes('disabled')).toBeDefined()
   })
 })
