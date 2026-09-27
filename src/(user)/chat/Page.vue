@@ -4,7 +4,6 @@ import { storeToRefs } from 'pinia'
 import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
-import BotaoIcone from '@/components/BotaoIcone.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import { useChatStore } from './stores/chat'
 
@@ -33,7 +32,7 @@ watch(() => mensagens.value.length, async () => {
 <template>
   <div
     class="chat-page"
-    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra, 'ficha-recolhida': regra && fichaRecolhida }">
+    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
         <h1>Olá, Roberval!</h1>
@@ -56,24 +55,29 @@ watch(() => mensagens.value.length, async () => {
       </div>
     </div>
 
-    <aside v-if="regra && fichaRecolhida" class="ficha-trilho" aria-label="Painel da campanha recolhido">
-      <BotaoIcone icone="bi bi-layout-sidebar-inset-reverse" dica="Abrir o painel da campanha" @click="fichaRecolhida = false" />
-      <button type="button" class="ficha-trilho-nome" @click="fichaRecolhida = false">
-        <span class="ficha-trilho-ponto" :class="camposVazios.length ? 'ponto--pendente' : 'ponto--pronta'" />
-        Campanha, {{ statusFicha }}
+    <!-- Um só painel que muda de largura, com a mesma transição da sidebar (0,25 s). -->
+    <aside v-if="regra" class="ficha-lateral" :class="{ 'ficha-lateral--recolhida': fichaRecolhida }">
+      <div class="ficha-conteudo" :inert="fichaRecolhida ? true : undefined">
+        <ParametrosPanel
+          :regra="regra"
+          :campos-vazios="camposVazios"
+          :pode-simular="podeSimular"
+          :simulando="simulando"
+          @alterar="chat.atualizarParametro"
+          @simular="chat.simular"
+          @recolher="fichaRecolhida = true"
+        />
+      </div>
+      <!-- Recolhida, a faixa inteira é o botão de abrir: alvo grande, fácil de acertar. -->
+      <button type="button" class="ficha-trilho" :tabindex="fichaRecolhida ? 0 : -1"
+        :aria-hidden="!fichaRecolhida" aria-label="Abrir o painel da campanha" title="Abrir o painel da campanha"
+        @click="fichaRecolhida = false">
+        <i class="bi bi-layout-sidebar-inset-reverse ficha-trilho-icone" aria-hidden="true" />
+        <span class="ficha-trilho-nome">
+          <span class="ficha-trilho-ponto" :class="camposVazios.length ? 'ponto--pendente' : 'ponto--pronta'" />
+          Campanha, {{ statusFicha }}
+        </span>
       </button>
-    </aside>
-
-    <aside v-else-if="regra" class="ficha-lateral">
-      <ParametrosPanel
-        :regra="regra"
-        :campos-vazios="camposVazios"
-        :pode-simular="podeSimular"
-        :simulando="simulando"
-        @alterar="chat.atualizarParametro"
-        @simular="chat.simular"
-        @recolher="fichaRecolhida = true"
-      />
     </aside>
   </div>
 </template>
@@ -150,38 +154,84 @@ watch(() => mensagens.value.length, async () => {
   justify-content: inherit;
 }
 
+/* Com a ficha, a página usa a largura toda: a ficha encosta na borda direita (16 px) e a
+   conversa fica centralizada no espaço que sobra, como o canvas do ChatGPT. */
 .com-ficha {
-  max-width: 1100px;
+  max-width: none;
   flex-direction: row;
   align-items: flex-start;
-  gap: 24px;
+  gap: 20px;
+  padding-right: 16px;
 }
 
-/* Fixa ao lado da conversa; o painel rola por dentro e o botão Simular fica sempre visível. */
+.com-ficha .conversa {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
 .ficha-lateral {
   position: sticky;
   top: 16px;
   width: 360px;
   flex-shrink: 0;
+  border-radius: 10px;
+  background-color: var(--color-black-bg2);
+  overflow: hidden;
+  transition: width 0.25s ease;
 }
 
-/* Ficha recolhida: o chat usa a largura toda e sobra uma faixa estreita para reabrir. */
-.ficha-recolhida {
-  max-width: 1000px;
+.ficha-lateral--recolhida {
+  width: 44px;
+}
+
+/* O conteúdo mantém a largura aberta e é cortado enquanto a ficha encolhe, sem reflow. */
+.ficha-conteudo {
+  width: 360px;
+  transition: opacity 0.15s ease;
+}
+
+.ficha-lateral--recolhida .ficha-conteudo {
+  opacity: 0;
 }
 
 .ficha-trilho {
-  position: sticky;
-  top: 16px;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  width: 44px;
-  flex-shrink: 0;
-  padding: 6px 0 14px;
-  border-radius: 10px;
+  gap: 14px;
+  padding: 14px 0;
+  border: none;
+  border-radius: inherit;
   background-color: var(--color-black-bg2);
+  color: var(--color-gray-txt2-dark);
+  font-family: var(--font-raleway);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, background-color 0.15s, color 0.15s;
+}
+
+.ficha-lateral--recolhida .ficha-trilho {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0.1s, 0s, 0s;
+}
+
+.ficha-trilho:hover {
+  background-color: color-mix(in srgb, var(--color-white-txt1) 6%, var(--color-black-bg2));
+  color: var(--color-white-txt1);
+}
+
+.ficha-trilho:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: -2px;
+}
+
+.ficha-trilho-icone {
+  font-size: 16px;
 }
 
 /* O nome fica na vertical, como as abas recolhidas do Linear e do Figma. */
@@ -189,23 +239,9 @@ watch(() => mensagens.value.length, async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--color-gray-txt2-dark);
-  font-family: var(--font-raleway);
   font-size: 13px;
+  white-space: nowrap;
   writing-mode: vertical-rl;
-  cursor: pointer;
-}
-
-.ficha-trilho-nome:hover {
-  color: var(--color-white-txt1);
-}
-
-.ficha-trilho-nome:focus-visible {
-  outline: 2px solid var(--color-blue);
-  outline-offset: 2px;
 }
 
 .ficha-trilho-ponto {
@@ -244,6 +280,7 @@ watch(() => mensagens.value.length, async () => {
   .com-ficha {
     flex-direction: column;
     align-items: stretch;
+    padding-right: 16px;
   }
 
   /* No celular a ficha vem antes da conversa, para o usuário ver o que falta preencher. */
@@ -253,20 +290,34 @@ watch(() => mensagens.value.length, async () => {
     width: 100%;
   }
 
+  .ficha-lateral--recolhida {
+    width: 100%;
+    height: 44px;
+  }
+
+  .ficha-conteudo {
+    width: 100%;
+  }
+
   .ficha-lateral :deep(.ficha) {
     max-height: none;
   }
 
   .ficha-trilho {
-    position: static;
-    order: -1;
     flex-direction: row;
-    width: 100%;
-    padding: 6px 12px 6px 6px;
+    padding: 0 14px;
   }
 
   .ficha-trilho-nome {
     writing-mode: horizontal-tb;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha-lateral,
+  .ficha-conteudo,
+  .ficha-trilho {
+    transition: none;
   }
 }
 </style>

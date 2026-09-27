@@ -28,9 +28,10 @@ import Sidebar from './components/Sidebar.vue'
   align-items: center;
 }
 
+/* Sem limite de largura aqui: cada página decide. O chat centraliza a conversa e, com a ficha
+   da campanha, encosta a ficha na borda direita em vez de deixar uma sobra vazia. */
 .content-container {
   width: 100%;
-  max-width: 1100px;
   min-height: 100vh;
 }
 </style>
