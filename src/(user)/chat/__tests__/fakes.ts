@@ -42,6 +42,21 @@ export function resultadoBlackFriday(cabe = true): ResultadoSimulacao {
       ? { orcamento_limite: 30000, custo_incremental: 23736.17, folga: 6263.83, cabe_no_orcamento: true }
       : { orcamento_limite: 20000, custo_incremental: 23736.17, folga: -3736.17, cabe_no_orcamento: false },
     meta: { meta_vendas: 2000000, vendas_periodo: 2406125.93, pct_atingimento: 120.31, atingida: true },
+    impacto: { pessoas_impactadas: 312, pessoas_total: 548, media_por_pessoa: 76.08, maior_acrescimo: 402.5 },
+    maiores_lojas: [{ codigo: '13', baseline: 1, simulado: 2, diferenca: 2140.1 }],
+    cenarios: [
+      {
+        tipo: 'ajustar_acrescimo', titulo: 'Acréscimo menor, dentro do orçamento', pct_acrescimo: 0.84,
+        marcas_alvo: ['10', '20', '30', '40', '50', '60'], custo_incremental: 19938.37, economia: 3797.8,
+        cabe_no_orcamento: true,
+      },
+      {
+        tipo: 'sem_marca', titulo: 'Sem a marca Preto', pct_acrescimo: 1,
+        marcas_alvo: ['20', '30', '40', '50', '60'], custo_incremental: 4398.31, economia: 19337.86,
+        cabe_no_orcamento: true,
+      },
+    ],
+    ressalvas: ['Simulação sobre vendas que já aconteceram.'],
     codigo: 'def aplicar_regra(bases, apuracao_base, competencias): ...',
     origem_codigo: 'llm', tentativas: 1, explicacao: 'Cabe no **orçamento**.',
   }

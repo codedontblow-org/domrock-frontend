@@ -61,6 +61,18 @@ describe('ParametrosPanel', () => {
   })
 })
 
+describe('Recolher o painel', () => {
+  it('pede para recolher com um botão que tem nome acessível', async () => {
+    const wrapper = mount(ParametrosPanel, {
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false },
+    })
+
+    await wrapper.find('button[aria-label="Recolher o painel"]').trigger('click')
+
+    expect(wrapper.emitted('recolher')).toHaveLength(1)
+  })
+})
+
 describe('ResultadoSimulacao', () => {
   it('mostra o custo extra e quanto do orçamento ele usa', () => {
     const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoBlackFriday() } })
@@ -87,5 +99,33 @@ describe('SpeechBubble', () => {
 
     expect(wrapper.find('strong').text()).toBe('ok')
     expect(wrapper.html()).not.toContain('onerror')
+  })
+})
+
+describe('Resultado com impacto e cenários', () => {
+  it('mostra pessoas impactadas e a meta como histórico', () => {
+    const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoBlackFriday() } })
+
+    expect(texto(wrapper)).toContain('312 de 548 pessoas')
+    expect(texto(wrapper)).toContain('120,31% da meta (20,31% acima da meta)')
+    expect(texto(wrapper)).not.toContain('atingida')
+  })
+
+  it('troca a quebra do custo pelas abas e mostra a fatia de cada loja', async () => {
+    const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoBlackFriday() } })
+    expect(texto(wrapper)).not.toContain('Loja 13')
+
+    await wrapper.findAll('.detalhe-aba').find((aba) => aba.text() === 'Lojas')?.trigger('click')
+
+    expect(texto(wrapper.find('.detalhe-linhas'))).toContain('Loja 13')
+    expect(texto(wrapper.find('.detalhe-linhas'))).toContain('9%') // 2.140,10 de 23.736,17
+  })
+
+  it('emite o cenário escolhido para ir ao painel', async () => {
+    const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoBlackFriday() } })
+
+    await wrapper.findAll('.cenario-aplicar')[0]?.trigger('click')
+
+    expect(wrapper.emitted('aplicar-cenario')?.[0]?.[0]).toMatchObject({ pct_acrescimo: 0.84 })
   })
 })

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { definirServicoCampanha, useChatStore } from '../stores/chat'
-import { FakeServicoCampanha, regraBlackFriday } from './fakes'
+import { FakeServicoCampanha, regraBlackFriday, resultadoBlackFriday } from './fakes'
 
 function erroHttp(status: number, data: unknown): AxiosError {
   const config = { headers: new AxiosHeaders() }
@@ -50,6 +50,19 @@ describe('useChatStore', () => {
     const pct = servico.simulacoes[0]?.parametros.find((p) => p.key === 'pct_acrescimo')
     expect(pct?.value).toBe(2)
     expect(chat.mensagens[chat.mensagens.length - 1]?.resultado?.totais.diferenca).toBe(23736.17)
+  })
+
+  it('aplica o cenário calculado no painel sem simular sozinho', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Black Friday')
+    const [cenario] = resultadoBlackFriday().cenarios
+
+    chat.aplicarCenario(cenario!)
+
+    const valor = (key: string) => chat.regra?.parametros.find((p) => p.key === key)?.value
+    expect(valor('pct_acrescimo')).toBe(0.84)
+    expect(valor('marcas_alvo')).toEqual(['10', '20', '30', '40', '50', '60'])
+    expect(servico.simulacoes).toHaveLength(0)
   })
 
   it('mostra os erros de validação que o backend devolve', async () => {

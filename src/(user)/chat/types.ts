@@ -47,6 +47,24 @@ export interface QuebraDimensao {
   diferenca: number
 }
 
+export interface ImpactoPessoas {
+  pessoas_impactadas: number
+  pessoas_total: number
+  media_por_pessoa: number
+  maior_acrescimo: number
+}
+
+// Variação da regra já simulada pela Lana (nunca estimada pela LLM), pronta para ir ao painel.
+export interface CenarioAlternativo {
+  tipo: 'ajustar_acrescimo' | 'sem_marca'
+  titulo: string
+  pct_acrescimo: number
+  marcas_alvo: string[]
+  custo_incremental: number
+  economia: number
+  cabe_no_orcamento: boolean
+}
+
 export interface ResultadoSimulacao {
   rule_id: string
   competencias: string[]
@@ -55,6 +73,10 @@ export interface ResultadoSimulacao {
   por_cargo: QuebraDimensao[]
   orcamento: { orcamento_limite: number; custo_incremental: number; folga: number; cabe_no_orcamento: boolean }
   meta: { meta_vendas: number; vendas_periodo: number; pct_atingimento: number; atingida: boolean }
+  impacto: ImpactoPessoas
+  maiores_lojas: QuebraDimensao[]
+  cenarios: CenarioAlternativo[]
+  ressalvas: string[]
   codigo: string
   origem_codigo: string
   tentativas: number

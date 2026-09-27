@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
-import type { MensagemChat, PapelMensagem, RegraCampanha, ValorParametro } from '../types'
+import type { CenarioAlternativo, MensagemChat, PapelMensagem, RegraCampanha, ValorParametro } from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
 
@@ -53,6 +53,14 @@ export const useChatStore = defineStore('chat', () => {
     if (parametro) parametro.value = valor
   }
 
+  /** Leva o cenário calculado ao painel; a simulação continua sendo decisão do usuário. */
+  function aplicarCenario(cenario: CenarioAlternativo): void {
+    if (!regra.value) return
+    atualizarParametro('pct_acrescimo', cenario.pct_acrescimo)
+    atualizarParametro('marcas_alvo', [...cenario.marcas_alvo])
+    adicionar('agente', `Coloquei no painel o cenário "${cenario.titulo}". Confira e clique em Simular campanha.`)
+  }
+
   async function simular(): Promise<void> {
     if (!regra.value || !podeSimular.value) return
     simulando.value = true
@@ -68,7 +76,7 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     chatId, mensagens, regra, aguardandoLana, simulando, ocupado, camposVazios, podeSimular,
-    enviar, atualizarParametro, simular,
+    enviar, atualizarParametro, aplicarCenario, simular,
   }
 })
 

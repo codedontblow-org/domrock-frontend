@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatarMoeda, formatarPercentual, renderizarMarkdown } from '../formatacao'
-import { NOMES_CARGO, NOMES_MARCA } from '../rotulos'
-import type { QuebraDimensao, ResultadoSimulacao } from '../types'
+import type { CenarioAlternativo, ResultadoSimulacao } from '../types'
+import CenariosAlternativos from './CenariosAlternativos.vue'
+import DetalhamentoCusto from './DetalhamentoCusto.vue'
 
 const props = defineProps<{ resultado: ResultadoSimulacao }>()
+const emit = defineEmits<{ 'aplicar-cenario': [cenario: CenarioAlternativo] }>()
 
 const orcamento = computed(() => props.resultado.orcamento)
+const cabe = computed(() => orcamento.value.cabe_no_orcamento)
 // Barra do orçamento: até 100% enche; acima disso fica cheia e muda de cor.
 const consumo = computed(() => {
   const { custo_incremental: custo, orcamento_limite: limite } = orcamento.value
@@ -14,76 +17,86 @@ const consumo = computed(() => {
 })
 const larguraBarra = computed(() => `${Math.min(consumo.value, 1) * 100}%`)
 const vereditoOrcamento = computed(() =>
-  orcamento.value.cabe_no_orcamento
+  cabe.value
     ? `Usa ${formatarPercentual(consumo.value * 100)} do orçamento de ${formatarMoeda(orcamento.value.orcamento_limite)}. Sobram ${formatarMoeda(orcamento.value.folga)}.`
     : `Passa ${formatarMoeda(-orcamento.value.folga)} do orçamento de ${formatarMoeda(orcamento.value.orcamento_limite)}.`,
 )
-const afetados = (linhas: QuebraDimensao[]) => linhas.filter((l) => l.diferenca !== 0)
-const marcasAfetadas = computed(() => afetados(props.resultado.por_marca))
-const cargosAfetados = computed(() => afetados(props.resultado.por_cargo))
-const quebras = computed(() => [
-  { titulo: 'Custo extra por marca', linhas: marcasAfetadas.value, nomes: NOMES_MARCA },
-  { titulo: 'Custo extra por cargo', linhas: cargosAfetados.value, nomes: NOMES_CARGO },
-])
+const impacto = computed(() => props.resultado.impacto)
+// Histórico, não previsão: "120% da meta" é 20% acima dela, e não "superou em 120%".
+const comparacaoMeta = computed(() => {
+  const pct = props.resultado.meta.pct_atingimento
+  return pct >= 100 ? `${formatarPercentual(pct - 100)} acima da meta` : `${formatarPercentual(100 - pct)} abaixo da meta`
+})
 const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao))
 </script>
 
 <template>
   <article class="resultado" aria-label="Resultado da simulação">
-    <p class="resultado-rotulo">Custo extra da campanha</p>
+    <header class="resultado-topo">
+      <p class="resultado-rotulo">Custo extra da campanha</p>
+      <span class="resultado-selo" :class="cabe ? 'selo--cabe' : 'selo--passa'">
+        {{ cabe ? 'Cabe no orçamento' : 'Passa do orçamento' }}
+      </span>
+    </header>
     <p class="resultado-custo">{{ formatarMoeda(resultado.totais.diferenca) }}</p>
 
-    <div class="medidor" :class="{ 'medidor--estourou': !orcamento.cabe_no_orcamento }" role="img"
-      :aria-label="vereditoOrcamento">
+    <div class="medidor" :class="{ 'medidor--estourou': !cabe }" role="img" :aria-label="vereditoOrcamento">
       <div class="medidor-preenchido" :style="{ width: larguraBarra }" />
     </div>
-    <p class="resultado-veredito" :class="orcamento.cabe_no_orcamento ? 'positivo' : 'negativo'">
-      {{ vereditoOrcamento }}
-    </p>
+    <p class="resultado-veredito" :class="cabe ? 'positivo' : 'negativo'">{{ vereditoOrcamento }}</p>
 
     <dl class="resultado-numeros">
       <div>
-        <dt>Comissão sem a campanha</dt>
+        <dt>Sem a campanha</dt>
         <dd>{{ formatarMoeda(resultado.totais.baseline) }}</dd>
       </div>
       <div>
         <dt>Com a campanha</dt>
-        <dd>{{ formatarMoeda(resultado.totais.simulado) }} <small>+{{ formatarPercentual(resultado.totais.diferenca_pct) }}</small></dd>
+        <dd>{{ formatarMoeda(resultado.totais.simulado) }}</dd>
+        <dd class="resultado-apoio">+{{ formatarPercentual(resultado.totais.diferenca_pct) }} na comissão</dd>
       </div>
       <div>
-        <dt>Vendas no período</dt>
-        <dd>
-          {{ formatarMoeda(resultado.meta.vendas_periodo) }}
-          <small :class="resultado.meta.atingida ? 'positivo' : 'negativo'">
-            {{ formatarPercentual(resultado.meta.pct_atingimento) }} da meta
-          </small>
+        <dt>Recebem o acréscimo</dt>
+        <dd>{{ impacto.pessoas_impactadas }} de {{ impacto.pessoas_total }} pessoas</dd>
+        <dd v-if="impacto.pessoas_impactadas" class="resultado-apoio"
+          :title="`Maior acréscimo individual: ${formatarMoeda(impacto.maior_acrescimo)}`">
+          média de {{ formatarMoeda(impacto.media_por_pessoa) }} cada
         </dd>
       </div>
     </dl>
 
-    <div v-if="marcasAfetadas.length" class="resultado-quebras">
-      <table v-for="quebra in quebras" :key="quebra.titulo" class="resultado-tabela">
-        <caption>{{ quebra.titulo }}</caption>
-        <tbody>
-          <tr v-for="linha in quebra.linhas" :key="linha.codigo">
-            <th scope="row">{{ quebra.nomes[linha.codigo] ?? linha.codigo }}</th>
-            <td>{{ formatarMoeda(linha.diferenca) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
     <div class="resultado-explicacao" v-html="explicacao" />
-    <p v-if="resultado.observacao" class="resultado-observacao">{{ resultado.observacao }}</p>
 
-    <details class="resultado-codigo">
-      <summary>Ver o código Python que calculou a regra</summary>
-      <pre><code>{{ resultado.codigo }}</code></pre>
-      <p class="resultado-rodape">
-        Competências {{ resultado.competencias.join(', ') }}.
-        Código {{ resultado.origem_codigo === 'llm' ? 'gerado pela Lana' : 'do modelo fixo' }}
-        em {{ resultado.tentativas }} {{ resultado.tentativas === 1 ? 'tentativa' : 'tentativas' }}.
-      </p>
+    <CenariosAlternativos :cenarios="resultado.cenarios" @aplicar="emit('aplicar-cenario', $event)" />
+
+    <details class="secao">
+      <summary class="secao-titulo">Onde o custo pesa</summary>
+      <div class="secao-corpo">
+        <DetalhamentoCusto :resultado="resultado" />
+      </div>
+    </details>
+
+    <details class="secao">
+      <summary class="secao-titulo">Como foi calculado</summary>
+      <div class="secao-corpo">
+        <p class="secao-texto">
+          No histórico, as vendas do período somaram {{ formatarMoeda(resultado.meta.vendas_periodo) }},
+          {{ formatarPercentual(resultado.meta.pct_atingimento) }} da meta ({{ comparacaoMeta }}).
+        </p>
+        <p v-if="resultado.observacao" class="secao-texto">{{ resultado.observacao }}</p>
+        <ul v-if="resultado.ressalvas.length" class="secao-ressalvas" aria-label="Limites da simulação">
+          <li v-for="ressalva in resultado.ressalvas" :key="ressalva">{{ ressalva }}</li>
+        </ul>
+        <details class="secao-codigo">
+          <summary>Código Python que calculou a regra</summary>
+          <pre><code>{{ resultado.codigo }}</code></pre>
+        </details>
+        <p class="secao-rodape">
+          Competências {{ resultado.competencias.join(', ') }}.
+          Código {{ resultado.origem_codigo === 'llm' ? 'gerado pela Lana' : 'do modelo fixo' }}
+          em {{ resultado.tentativas }} {{ resultado.tentativas === 1 ? 'tentativa' : 'tentativas' }}.
+        </p>
+      </div>
     </details>
   </article>
 </template>
@@ -91,11 +104,19 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 <style scoped>
 .resultado {
   align-self: stretch;
-  padding: 24px;
-  border-radius: 6px;
+  padding: 24px 24px 12px;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 10px;
   background-color: var(--color-black-bg2);
   color: var(--color-white-txt1);
   font-family: var(--font-raleway);
+}
+
+.resultado-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .resultado-rotulo {
@@ -103,16 +124,33 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
   font-size: 14px;
 }
 
+.resultado-selo {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.selo--cabe {
+  background-color: color-mix(in srgb, var(--color-green) 14%, transparent);
+  color: var(--color-green);
+}
+
+.selo--passa {
+  background-color: color-mix(in srgb, var(--color-red) 14%, transparent);
+  color: var(--color-red);
+}
+
 .resultado-custo {
-  margin-top: 4px;
+  margin-top: 6px;
   font-family: var(--font-forum);
-  font-size: 64px;
+  font-size: 56px;
   line-height: 1;
 }
 
 .medidor {
-  height: 10px;
-  margin-top: 18px;
+  height: 8px;
+  margin-top: 16px;
   border-radius: 999px;
   background-color: rgb(255 255 255 / 8%);
   overflow: hidden;
@@ -144,9 +182,11 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 
 .resultado-numeros {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
 }
 
 .resultado-numeros dt {
@@ -155,78 +195,117 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 }
 
 .resultado-numeros dd {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.resultado-numeros .resultado-apoio {
   margin-top: 2px;
-  font-size: 18px;
-}
-
-.resultado-numeros small {
-  display: block;
-  font-size: 13px;
-}
-
-.resultado-quebras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px 32px;
-  margin-top: 24px;
-}
-
-.resultado-tabela {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.resultado-tabela caption {
-  margin-bottom: 6px;
   color: var(--color-gray-txt2-dark);
   font-size: 13px;
-  text-align: left;
-}
-
-.resultado-tabela th {
-  padding: 4px 0;
-  font-weight: normal;
-  text-align: left;
-}
-
-.resultado-tabela td {
-  font-family: var(--font-inconsolata);
-  text-align: right;
+  font-weight: 400;
 }
 
 .resultado-explicacao {
-  max-width: 64ch;
-  margin-top: 24px;
+  max-width: 68ch;
+  margin-top: 20px;
   font-size: 15px;
   line-height: 1.6;
 }
 
 .resultado-explicacao :deep(strong) {
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.resultado-observacao {
-  margin-top: 12px;
+.secao {
+  margin-top: 16px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.secao + .secao {
+  margin-top: 0;
+}
+
+.secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--color-white-txt2);
+  font-size: 14px;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+
+.secao-titulo::-webkit-details-marker {
+  display: none;
+}
+
+/* Seta que gira ao abrir: mostra o que mudou, sem animação decorativa. */
+.secao-titulo::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.secao[open] > .secao-titulo::before {
+  transform: rotate(45deg);
+}
+
+.secao-titulo:hover {
+  color: var(--color-white-txt1);
+}
+
+.secao-titulo:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+.secao-corpo {
+  padding: 0 0 16px 14px;
+}
+
+.secao-texto {
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.secao-texto + .secao-texto {
+  margin-top: 6px;
   color: var(--color-gray-txt2-dark);
-  font-size: 13px;
 }
 
-.resultado-codigo {
-  margin-top: 20px;
+.secao-ressalvas {
+  margin-top: 12px;
+  padding-left: 16px;
+  list-style: disc;
+  color: var(--color-gray-txt3-dark);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.secao-codigo {
+  margin-top: 12px;
   font-size: 14px;
 }
 
-.resultado-codigo summary {
+.secao-codigo summary {
   color: var(--color-blue);
   cursor: pointer;
 }
 
-.resultado-codigo pre {
+.secao-codigo pre {
   max-height: 360px;
   margin-top: 10px;
   padding: 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: var(--color-black-bg1);
   overflow: auto;
   font-family: var(--font-inconsolata);
@@ -234,14 +313,25 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
   line-height: 1.4;
 }
 
-.resultado-rodape {
-  margin-top: 8px;
+.secao-rodape {
+  margin-top: 10px;
   color: var(--color-gray-txt3-dark);
   font-size: 12px;
 }
 
+@media (max-width: 560px) {
+  .resultado {
+    padding: 18px 16px 8px;
+  }
+
+  .resultado-custo {
+    font-size: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .medidor-preenchido {
+  .medidor-preenchido,
+  .secao-titulo::before {
     transition: none;
   }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import BotaoIcone from '@/components/BotaoIcone.vue'
 import ParametroCampo from './ParametroCampo.vue'
 import type { RegraCampanha, ValorParametro } from '../types'
 
@@ -13,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   alterar: [key: string, valor: ValorParametro]
   simular: []
+  recolher: []
 }>()
 
 const comandoAberto = ref(false)
@@ -39,6 +41,8 @@ const aviso = computed(() => {
       <span class="ficha-status" :class="pendentes ? 'ficha-status--pendente' : 'ficha-status--pronta'">
         {{ status }}
       </span>
+      <BotaoIcone class="ficha-recolher" icone="bi bi-layout-sidebar-inset-reverse" dica="Recolher o painel"
+        lado="baixo" @click="emit('recolher')" />
     </header>
 
     <button v-if="regra.raw_prompt" type="button" class="ficha-comando"
@@ -77,13 +81,13 @@ const aviso = computed(() => {
 
 .ficha-cabecalho {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  padding: 16px 16px 0;
+  padding: 12px 10px 0 16px;
 }
 
 .ficha-titulo {
+  flex: 1;
   color: var(--color-white-txt1);
   font-family: var(--font-forum);
   font-size: 26px;
