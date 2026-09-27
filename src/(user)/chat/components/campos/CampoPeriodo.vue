@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 import { VueDatePicker, type PresetDate } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import { ptBR } from 'date-fns/locale'
@@ -23,13 +23,20 @@ const atalhos: PresetDate[] = [
   { label: 'Black Friday', value: [new Date(2025, 10, 24), new Date(2025, 10, 30)] },
 ]
 
-const intervalo = computed<string[] | null>(() => {
-  const { data_inicio: inicio, data_fim: fim } = props.modelValue ?? {}
+function paraIntervalo(periodo: Periodo | null): string[] | null {
+  const { data_inicio: inicio, data_fim: fim } = periodo ?? {}
   return inicio && fim ? [inicio, fim] : null
-})
+}
+
+// Com auto-apply, o intervalo precisa de partialRange: false; sem isso o menu fecha no 1º clique
+// (docs, "auto-apply"). O painel só recebe o período com as duas datas escolhidas.
+const intervalo = ref<string[] | null>(paraIntervalo(props.modelValue))
+watch(() => props.modelValue, (periodo) => { intervalo.value = paraIntervalo(periodo) })
 
 function alterar(valor: string[] | null): void {
-  const [inicio = null, fim = null] = valor ?? []
+  const [inicio, fim] = valor ?? []
+  if (!inicio || !fim) return
+  intervalo.value = valor
   emit('update:modelValue', { data_inicio: inicio, data_fim: fim })
 }
 </script>
@@ -39,7 +46,7 @@ function alterar(valor: string[] | null): void {
     :model-value="intervalo"
     class="campo-periodo"
     :class="{ 'campo-periodo--faltando': faltando }"
-    range
+    :range="{ partialRange: false }"
     auto-apply
     dark
     model-type="yyyy-MM-dd"
@@ -85,7 +92,7 @@ function alterar(valor: string[] | null): void {
   --dp-cell-size: 34px;
   --dp-border-radius: 8px;
   --dp-cell-border-radius: 6px;
-  --dp-input-padding: 8px 30px 8px 12px;
+  --dp-input-padding: 7px 30px 7px 12px;
 }
 
 .campo-periodo .dp__input {

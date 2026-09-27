@@ -22,7 +22,7 @@ function digitar(evento: Event): void {
   <label class="moeda" :class="{ 'moeda--faltando': faltando }">
     <span class="moeda-prefixo" aria-hidden="true">R$</span>
     <input :id="idCampo" :value="texto" type="text" inputmode="numeric" autocomplete="off" :aria-label="rotulo"
-      :placeholder="faltando ? 'Informe o valor' : '0'" @input="digitar" />
+      :placeholder="faltando ? 'Informe' : '0'" @input="digitar" />
   </label>
 </template>
 
@@ -31,7 +31,7 @@ function digitar(evento: Event): void {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: 8px;
   background-color: var(--color-black-bg1);
   box-shadow: inset 0 0 0 1px transparent;
@@ -59,13 +59,13 @@ function digitar(evento: Event): void {
 input {
   width: 100%;
   min-width: 0;
-  padding: 9px 0;
+  padding: 7px 0;
   border: none;
   outline: none;
   background: none;
   color: var(--color-white-txt1);
   font-family: var(--font-raleway);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
 }
 

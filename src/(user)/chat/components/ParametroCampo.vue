@@ -27,10 +27,10 @@ function alternarOpcao(id: string): void {
 </script>
 
 <template>
-  <div class="campo" :class="{ 'campo--faltando': faltando }" role="group" :aria-labelledby="`${idCampo}-rotulo`">
+  <div class="campo" :class="{ 'campo--faltando': faltando, 'campo--linha': parametro.type === 'percentage' }" role="group" :aria-labelledby="`${idCampo}-rotulo`">
     <span :id="`${idCampo}-rotulo`" class="campo-rotulo" :title="parametro.label">
       {{ rotulo }}
-      <span v-if="faltando" class="campo-pendente">falta preencher</span>
+      <span v-if="faltando" class="campo-pendente">pendente</span>
     </span>
 
     <CampoPeriodo v-if="parametro.type === 'date_range'" :model-value="parametro.value as Periodo | null"
@@ -56,8 +56,16 @@ function alternarOpcao(id: string): void {
    lê de cima para baixo e o período cabe inteiro sem cortar o ano. */
 .campo {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 6px;
+}
+
+/* O acréscimo é curto: rótulo e stepper na mesma linha economizam uma linha inteira. */
+.campo--linha {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .campo-rotulo {

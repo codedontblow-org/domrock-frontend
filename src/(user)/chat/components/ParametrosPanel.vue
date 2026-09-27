@@ -142,20 +142,24 @@ const aviso = computed(() => {
 .ficha-corpo {
   flex: 1;
   min-height: 0;
-  margin-top: 14px;
-  padding: 0 16px 16px;
+  margin-top: 12px;
+  padding: 0 16px 14px;
   overflow-y: auto;
 }
 
 .ficha-grupo {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
+/* Meta e orçamento lado a lado: são os dois limites da campanha e se leem juntos. */
 .ficha-grupo--limites {
-  margin-top: 20px;
-  padding-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid rgb(255 255 255 / 7%);
 }
 

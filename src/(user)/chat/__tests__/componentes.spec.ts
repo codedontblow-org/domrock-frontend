@@ -30,7 +30,7 @@ describe('ParametroCampo', () => {
   it('marca o campo obrigatório vazio', () => {
     const wrapper = mount(ParametroCampo, { props: { parametro: parametro('orcamento_limite', { orcamento_limite: null }) } })
 
-    expect(wrapper.text()).toContain('falta preencher')
+    expect(wrapper.text()).toContain('pendente')
   })
 
   it('emite número ao editar valor em reais', async () => {
@@ -147,5 +147,14 @@ describe('SecaoExpansivel', () => {
     expect(botao.attributes('aria-expanded')).toBe('true')
     expect(wrapper.find('.secao-corpo').attributes('inert')).toBeUndefined()
     expect(rolar).toHaveBeenCalledWith({ behavior: 'auto', block: 'nearest' })
+  })
+})
+
+describe('Rótulo pendente', () => {
+  it('só o campo vazio fica marcado como pendente', () => {
+    const wrapper = mount(ParametroCampo, { props: { parametro: parametro('meta_vendas') } })
+
+    expect(wrapper.classes()).not.toContain('campo--faltando')
+    expect(wrapper.text()).not.toContain('pendente')
   })
 })

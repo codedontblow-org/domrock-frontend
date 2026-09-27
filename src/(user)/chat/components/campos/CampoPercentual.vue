@@ -67,11 +67,11 @@ function confirmar(evento: Event): void {
 }
 
 .percentual-passo {
-  width: 36px;
+  width: 30px;
   border: none;
   background: none;
   color: var(--color-gray-txt2-dark);
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   transition: color 0.15s, background-color 0.15s;
 }
@@ -109,14 +109,14 @@ function confirmar(evento: Event): void {
 }
 
 input {
-  width: 52px;
-  padding: 9px 0;
+  width: 44px;
+  padding: 6px 0;
   border: none;
   outline: none;
   background: none;
   color: var(--color-white-txt1);
   font-family: var(--font-raleway);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   text-align: right;
 }
