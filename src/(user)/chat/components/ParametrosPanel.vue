@@ -70,10 +70,11 @@ const aviso = computed(() => {
 </template>
 
 <style scoped>
+/* Ocupa a altura da janela: os campos respiram e o botão Simular fica sempre no rodapé. */
 .ficha {
   display: flex;
   flex-direction: column;
-  max-height: calc(100dvh - 32px);
+  height: calc(100dvh - 32px);
   border-radius: 8px;
   background-color: var(--color-black-bg2);
   overflow: hidden;
@@ -141,14 +142,20 @@ const aviso = computed(() => {
 .ficha-corpo {
   flex: 1;
   min-height: 0;
-  margin-top: 10px;
-  padding: 0 16px;
+  margin-top: 14px;
+  padding: 0 16px 16px;
   overflow-y: auto;
 }
 
+.ficha-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .ficha-grupo--limites {
-  margin-top: 4px;
-  padding-top: 4px;
+  margin-top: 20px;
+  padding-top: 20px;
   border-top: 1px solid rgb(255 255 255 / 7%);
 }
 

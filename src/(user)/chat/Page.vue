@@ -300,7 +300,7 @@ watch(() => mensagens.value.length, async () => {
   }
 
   .ficha-lateral :deep(.ficha) {
-    max-height: none;
+    height: auto;
   }
 
   .ficha-trilho {
