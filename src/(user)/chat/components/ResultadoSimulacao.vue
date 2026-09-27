@@ -4,6 +4,7 @@ import { formatarMoeda, formatarPercentual, renderizarMarkdown } from '../format
 import type { CenarioAlternativo, ResultadoSimulacao } from '../types'
 import CenariosAlternativos from './CenariosAlternativos.vue'
 import DetalhamentoCusto from './DetalhamentoCusto.vue'
+import SecaoExpansivel from './SecaoExpansivel.vue'
 
 const props = defineProps<{ resultado: ResultadoSimulacao }>()
 const emit = defineEmits<{ 'aplicar-cenario': [cenario: CenarioAlternativo] }>()
@@ -69,16 +70,12 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 
     <CenariosAlternativos :cenarios="resultado.cenarios" @aplicar="emit('aplicar-cenario', $event)" />
 
-    <details class="secao">
-      <summary class="secao-titulo">Onde o custo pesa</summary>
-      <div class="secao-corpo">
+    <div class="resultado-secoes">
+      <SecaoExpansivel titulo="Onde o custo pesa">
         <DetalhamentoCusto :resultado="resultado" />
-      </div>
-    </details>
+      </SecaoExpansivel>
 
-    <details class="secao">
-      <summary class="secao-titulo">Como foi calculado</summary>
-      <div class="secao-corpo">
+      <SecaoExpansivel titulo="Como foi calculado">
         <p class="secao-texto">
           No histórico, as vendas do período somaram {{ formatarMoeda(resultado.meta.vendas_periodo) }},
           {{ formatarPercentual(resultado.meta.pct_atingimento) }} da meta ({{ comparacaoMeta }}).
@@ -87,17 +84,16 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
         <ul v-if="resultado.ressalvas.length" class="secao-ressalvas" aria-label="Limites da simulação">
           <li v-for="ressalva in resultado.ressalvas" :key="ressalva">{{ ressalva }}</li>
         </ul>
-        <details class="secao-codigo">
-          <summary>Código Python que calculou a regra</summary>
+        <SecaoExpansivel class="secao-codigo" titulo="Código Python que calculou a regra" discreta>
           <pre><code>{{ resultado.codigo }}</code></pre>
-        </details>
+        </SecaoExpansivel>
         <p class="secao-rodape">
           Competências {{ resultado.competencias.join(', ') }}.
           Código {{ resultado.origem_codigo === 'llm' ? 'gerado pela Lana' : 'do modelo fixo' }}
           em {{ resultado.tentativas }} {{ resultado.tentativas === 1 ? 'tentativa' : 'tentativas' }}.
         </p>
-      </div>
-    </details>
+      </SecaoExpansivel>
+    </div>
   </article>
 </template>
 
@@ -218,57 +214,8 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
   font-weight: 600;
 }
 
-.secao {
+.resultado-secoes {
   margin-top: 16px;
-  border-top: 1px solid rgb(255 255 255 / 7%);
-}
-
-.secao + .secao {
-  margin-top: 0;
-}
-
-.secao-titulo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0;
-  color: var(--color-white-txt2);
-  font-size: 14px;
-  font-weight: 500;
-  list-style: none;
-  cursor: pointer;
-}
-
-.secao-titulo::-webkit-details-marker {
-  display: none;
-}
-
-/* Seta que gira ao abrir: mostra o que mudou, sem animação decorativa. */
-.secao-titulo::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform 0.15s;
-}
-
-.secao[open] > .secao-titulo::before {
-  transform: rotate(45deg);
-}
-
-.secao-titulo:hover {
-  color: var(--color-white-txt1);
-}
-
-.secao-titulo:focus-visible {
-  outline: 2px solid var(--color-blue);
-  outline-offset: 2px;
-}
-
-.secao-corpo {
-  padding: 0 0 16px 14px;
 }
 
 .secao-texto {
@@ -293,17 +240,11 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 
 .secao-codigo {
   margin-top: 12px;
-  font-size: 14px;
-}
-
-.secao-codigo summary {
-  color: var(--color-blue);
-  cursor: pointer;
 }
 
 .secao-codigo pre {
   max-height: 360px;
-  margin-top: 10px;
+  margin-top: 6px;
   padding: 12px;
   border-radius: 6px;
   background-color: var(--color-black-bg1);
@@ -330,8 +271,7 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .medidor-preenchido,
-  .secao-titulo::before {
+  .medidor-preenchido {
     transition: none;
   }
 }

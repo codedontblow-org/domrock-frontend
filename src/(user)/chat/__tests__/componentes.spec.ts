@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ParametroCampo from '../components/ParametroCampo.vue'
 import ParametrosPanel from '../components/ParametrosPanel.vue'
 import ResultadoSimulacao from '../components/ResultadoSimulacao.vue'
+import SecaoExpansivel from '../components/SecaoExpansivel.vue'
 import SpeechBubble from '../components/SpeechBubble.vue'
 import { regraBlackFriday, resultadoBlackFriday } from './fakes'
 
@@ -127,5 +128,24 @@ describe('Resultado com impacto e cenários', () => {
     await wrapper.findAll('.cenario-aplicar')[0]?.trigger('click')
 
     expect(wrapper.emitted('aplicar-cenario')?.[0]?.[0]).toMatchObject({ pct_acrescimo: 0.84 })
+  })
+})
+
+describe('SecaoExpansivel', () => {
+  it('abre e fecha pelo botão, e fechada não deixa o conteúdo receber foco', async () => {
+    window.matchMedia = ((consulta: string) => ({ matches: true, media: consulta })) as typeof window.matchMedia
+    // O jsdom não implementa rolagem; só importa que abrir peça para mostrar o conteúdo.
+    const rolar = vi.fn()
+    Element.prototype.scrollIntoView = rolar
+    const wrapper = mount(SecaoExpansivel, { props: { titulo: 'Onde o custo pesa' }, slots: { default: '<p>Marca</p>' } })
+    const botao = wrapper.find('button')
+    expect(botao.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('.secao-corpo').attributes('inert')).toBeDefined()
+
+    await botao.trigger('click')
+
+    expect(botao.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('.secao-corpo').attributes('inert')).toBeUndefined()
+    expect(rolar).toHaveBeenCalledWith({ behavior: 'auto', block: 'nearest' })
   })
 })
