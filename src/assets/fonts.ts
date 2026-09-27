@@ -6,6 +6,7 @@ import "@fontsource/source-code-pro/400.css";
 
 import "@fontsource/raleway/400.css";
 import "@fontsource/raleway/500.css";
+import "@fontsource/raleway/600.css";
 
 import "@fontsource/forum/400.css";
 

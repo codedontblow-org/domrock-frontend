@@ -231,3 +231,10 @@ body,
   background-color: var(--color-black-bg1);
   color: var(--color-white-txt1);
 }
+
+/* A Raleway usa algarismos de estilo antigo por padrão: o 4, o 6 e o 9 descem da linha de base
+   e os valores em reais parecem tortos. Algarismos alinhados e de largura fixa em todo o app,
+   para que colunas de valores fiquem retas. */
+body {
+  font-variant-numeric: lining-nums tabular-nums;
+}
