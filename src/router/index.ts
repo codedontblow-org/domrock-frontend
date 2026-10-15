@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import SidebarLayout from '../layouts/SidebarLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import ChatPage from '../(user)/chat/Page.vue'
 import LoginPage from '../(auth)/login/Page.vue'
@@ -8,13 +9,14 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
-    },
-    {
-      path: '/chat',
-      name: 'chat',
-      component: ChatPage,
+      component: SidebarLayout,
+      children: [
+        {
+          path: '',
+          name: 'chat',
+          component: ChatPage,
+        }
+      ]
     },
     {
       path: '/login',
