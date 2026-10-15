@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@source inline("{text,bg,border,outline,ring,decoration,accent,caret,fill,stroke}-{red,orange,green,blue,purple}");
+
+
 @theme {
   /* ========================================
      FONTS

@@ -22,13 +22,24 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
+function resolveColor(value) {
+  // Se for um hexadecimal, usa diretamente.
+  if (value.startsWith('#')) return value
+
+  // Se for o nome de uma variável CSS, resolve o valor.
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(`--${value}`)
+    .trim() || '#00B4F1'
+}
+
+
 // ---------------------------------------------------------------------------
 // DEFAULTS: todas as opções, com valor padrão e valores aceitos.
 // ---------------------------------------------------------------------------
 const DEFAULTS = {
-  bg: "#0f0c10", // cor de fundo, hex #rrggbb
-  colorA: "#ff6b5e", // cor inicial do degradê, hex
-  colorB: "#6b2a35", // cor final do degradê, hex
+  bg: "#141416", // cor de fundo, variavel de cor
+  colorA: "#00B4F1", // cor inicial do degradê, variavel de cor
+  colorB: "#398A49", // cor final do degradê, variavel de cor
   mode: "topo", // efeito: 'topo' (curvas de nível) | 'grid' (plano de pontos 3D) | 'trunk' (anéis)
   show: "dots", // o que desenhar: 'both' | 'lines' | 'dots'
   levels: 4, // 4–60 · nº de curvas (topo) ou anéis (trunk)
@@ -75,30 +86,105 @@ const DEFAULTS = {
 // Se o perfil não definir 'seed', o relevo também é sorteado.
 // ---------------------------------------------------------------------------
 const PROFILES = {
-    "clean-flying-points": {
-        fixed: {
-            mode:"topo",
-            show: "dots",
-            cell: 40,
-            mouse: "on",
-            mouseDist: 100,
-            floatLinkWidth: 1,
-            fade: 1,
-        },
-        ranges: {
-            scale: [0.1, 0.5],
-            octaves: [1, 2],
-            speed: [0, 0.15],
-            morph: [0, 0.25],
-            dot: [0, 1.2],
-            opacity: [0.5, 1],
-            floatCount: [25, 125],
-            floatSize: [1.5, 2],
-            floatSpeed: [0.5, 2],
-            floatLinkDist: [50, 125],
-        },
+  "clean-flying-points": {
+    fixed: {
+      mode:"topo",
+      show: "dots",
+      cell: 40,
+      mouse: "on",
+      mouseDist: 150,
+      floatLinkWidth: 1,
+      fade: 1,
+      floatLinkDist: 100,
+      floatSpeed: 0.3,
+    },
+    ranges: {
+      scale: [0.1, 0.5],
+      octaves: [1, 2],
+      speed: [0, 0.15],
+      morph: [0, 0.25],
+      dot: [0, 1.2],
+      opacity: [0.5, 1],
+      floatCount: [25, 100],
+      floatSize: [1.5, 2],
+    },
+  },
+
+  "grid": {
+    fixed: {
+      mode: "grid",   
+      mouse: "off",
+      floatCount: 0,
+    },
+    ranges: {
+      scale: [0.7, 1.5],
+      amp: [0.5, 0.8],
+      speed: [0.2, 1],
+      width: [0.3, 1.3],
+      dot: [2.5, 3],
+      opacity: [0.7, 1],
+      cell: [5, 15],
+      zoom: [0.5, 2],
+      xs: [1, 3],
+      zs: [3, 7],
+      speed: [0.1, 0.5],
+      angle: [0, 365],
+    },
+    choices: {
+      show: ["both", "lines", "dots"],
+      camPreset: ['over', 'top', 'low'],
     }
+  },
+  
+  "ring": {
+    fixed: {
+      mode: "trunk",
+      mouse: "off",
+      floatLinks: "on",
+      floatLinkWidth: 0.5,
+      speed: 0.5,
+      pitch: 35,
+    },
+    ranges: {
+      levels: [5, 15],
+      scale: [0.2, 3],
+      octaves: [1, 2],
+      width: [0.5, 1.8],
+      dot: [1, 1.9],
+      angle: [0, 365],
+      morph: [0.5, 1.25],
+      opacity: [0.25, 0.75],
+      cell: [5, 40],
+      amp: [0.25, 0.5],
+      floatSize:[0.5, 1],
+      floatSpeed:[0.2, 1],
+      floatLinkDist: [50, 100],
+      fade: [0, 0.5],
+      indexEvery: [0, 5],
+    },
+    choices: {
+      show: ["both", "lines", "dots"],
+      cx: [0, 0.5, 1],
+      cy: [0, 0.5, 1],
+      floatCount: [0, 0, 0, 25, 50]
+    }
+  },
 }
+
+
+function getCSSColor(colorVar) {
+  const hex = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--${colorVar}`)
+    .trim()
+
+  return hex
+}
+
+// ---------------------------------------------------------------------------
+// CAMERA_PRESETS: atalhos escolhidos por camPreset. Cada um define pitch, camY, camZ e zoom.
+// Valores passados explicitamente (em config ou no perfil) têm prioridade sobre o preset.
+// ---------------------------------------------------------------------------
+const CAMERA_PRESETS = {"over":{"pitch":35,"camY":1.3,"camZ":-0.5,"zoom":1},"top":{"pitch":90,"camY":2.4,"camZ":2.5,"zoom":1},"low":{"pitch":8,"camY":0.35,"camZ":-0.4,"zoom":1}}
 
 /** PRNG determinístico (mulberry32): mesma semente -> mesma sequência em [0,1). */
 function mulberry32(a) {
@@ -122,6 +208,10 @@ function resolveConfig(profileName, overrides, randomSeed) {
     for (const k in prof.choices || {}) out[k] = prof.choices[k][Math.floor(rnd() * prof.choices[k].length)]
     if (!('seed' in (prof.ranges || {})) && !('seed' in (prof.fixed || {}))) out.seed = 1 + Math.floor(rnd() * 9998)
   }
+  // Preset de câmera: preenche pitch/camY/camZ/zoom, exceto o que o perfil ou o config definiram.
+  const set = new Set([...Object.keys((prof && prof.fixed) || {}), ...Object.keys((prof && prof.ranges) || {}), ...Object.keys((prof && prof.choices) || {}), ...Object.keys(overrides)])
+  const cam = CAMERA_PRESETS[overrides.camPreset || out.camPreset]
+  if (cam) for (const k in cam) if (!set.has(k)) out[k] = cam[k]
   return { ...out, ...overrides }
 }
 
@@ -140,7 +230,11 @@ const cfg = resolveConfig(props.profile, props.config, props.randomSeed) // obje
 let stop, parent, prevPos, prevIso
 
 // Aplica mudanças de config ao vivo, sem recriar o canvas.
-watch(() => props.config, v => Object.assign(cfg, v), { deep: true })
+watch(() => props.config, v => {
+  Object.assign(cfg, v)
+  const cam = CAMERA_PRESETS[v.camPreset] // trocar camPreset aplica o preset (exceto chaves também passadas em config)
+  if (cam) for (const k in cam) if (!(k in v)) cfg[k] = cam[k]
+}, { deep: true })
 
 onMounted(() => {
   parent = root.value.parentElement
@@ -207,7 +301,7 @@ function createTopo(canvas, cfg){
     const a = cfg.angle*Math.PI/180;
     ox += Math.cos(a)*dt*cfg.speed*.15; oy += Math.sin(a)*dt*cfg.speed*.15; z += dt*cfg.morph*.1; fly += dt*cfg.fly*.6;
     const W=canvas.width, H=canvas.height, d=W/canvas.clientWidth, k=cfg.scale*.0025;
-    const A=rgb(cfg.colorA), B=rgb(cfg.colorB), BG=rgb(cfg.bg), L=cfg.levels;
+    const A=rgb(resolveColor(props.config.colorA)), B=rgb(resolveColor(props.config.colorB)), BG=rgb(cfg.bg), L=cfg.levels;
     const showL=cfg.show!=='dots', showD=cfg.show!=='lines';
     // mix(m, alpha): cor do degradê A->B na posição m (0..1) com transparência alpha.
     const mix=(m,al)=>`rgba(${A.map((v,i)=>Math.round(lr(v,B[i],m))).join(',')},${al})`;
