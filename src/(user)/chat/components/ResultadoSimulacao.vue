@@ -4,6 +4,8 @@ import { formatarMoeda, formatarPercentual, renderizarMarkdown } from '../format
 import type { CenarioAlternativo, ResultadoSimulacao } from '../types'
 import CenariosAlternativos from './CenariosAlternativos.vue'
 import DetalhamentoCusto from './DetalhamentoCusto.vue'
+import ComissaoPeriodo from './ComissaoPeriodo.vue'
+import AvisoConflitos from './AvisoConflitos.vue'
 import SecaoExpansivel from './SecaoExpansivel.vue'
 
 const props = defineProps<{ resultado: ResultadoSimulacao }>()
@@ -69,6 +71,9 @@ const explicacao = computed(() => renderizarMarkdown(props.resultado.explicacao)
     <div class="resultado-explicacao" v-html="explicacao" />
 
     <CenariosAlternativos :cenarios="resultado.cenarios" @aplicar="emit('aplicar-cenario', $event)" />
+
+    <AvisoConflitos :conflitos="resultado.conflitos" />
+    <ComissaoPeriodo :linhas="resultado.comissoes_periodo" />
 
     <div class="resultado-secoes">
       <SecaoExpansivel titulo="Onde o custo pesa">

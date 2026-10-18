@@ -66,6 +66,8 @@ export interface CenarioAlternativo {
 }
 
 export interface ResultadoSimulacao {
+  comissoes_periodo?: ComissaoPeriodo[]
+  conflitos?: ConflitoCampanha[]
   rule_id: string
   competencias: string[]
   totais: { baseline: number; simulado: number; diferenca: number; diferenca_pct: number }
@@ -97,4 +99,49 @@ export interface MensagemChat {
   papel: PapelMensagem
   texto: string
   resultado?: ResultadoSimulacao
+}
+
+// Contrato de apresentação; adaptar quando a Lana disponibilizar comissão vigente.
+export interface HistoricoComissao {
+  id: string
+  nome: string
+  inicio: string
+  fim: string
+  acrescimo: number
+  autor: string
+  aprovador: string
+  aprovadoEm: string
+  justificativa: string
+}
+export interface ComissaoPeriodo {
+  id: string
+  marca: string
+  cargo: string
+  inicio: string
+  fim: string
+  base: number
+  vigente: number
+  comCampanha: number
+  historico: HistoricoComissao[]
+}
+export interface ConflitoCampanha {
+  id: string
+  nome: string
+  inicio: string
+  fim: string
+  marca: string
+  cargos: string[]
+}
+export interface ResumoCampanha {
+  nome: string
+  inicio: string | null
+  fim: string | null
+  acrescimo: number | null
+  cargos: string[]
+  marcas: string[]
+  retorno?: number
+  investimento?: number
+  autor?: string
+  submetidaEm?: string
+  conflitos?: ConflitoCampanha[]
 }
