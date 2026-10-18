@@ -113,6 +113,14 @@
      ======================================== */
 
   --color-red: var(--red);
+
+
+
+   /* ========================================
+     ANIMATIONS
+     ======================================== */
+
+   --animate-shake: shake 0.5s ease-in-out;
 }
 
 
@@ -240,4 +248,21 @@ body,
    para que colunas de valores fiquem retas. */
 body {
   font-variant-numeric: lining-nums tabular-nums;
+}
+
+
+
+/* ========================================
+ANIMATIONS
+======================================== */
+@keyframes shake {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  15%, 45%, 75% {
+    transform: rotate(-2deg);
+  }
+  30%, 60%, 90% {
+    transform: rotate(2deg);
+  }
 }

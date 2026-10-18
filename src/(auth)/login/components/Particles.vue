@@ -119,7 +119,6 @@ const PROFILES = {
     ranges: {
       scale: [0.7, 1.5],
       amp: [0.5, 0.8],
-      speed: [0.2, 1],
       width: [0.3, 1.3],
       dot: [2.5, 3],
       opacity: [0.7, 1],
@@ -127,7 +126,7 @@ const PROFILES = {
       zoom: [0.5, 2],
       xs: [1, 3],
       zs: [3, 7],
-      speed: [0.1, 0.5],
+      speed: [0.2, 0.7],
       angle: [0, 365],
     },
     choices: {
@@ -163,7 +162,7 @@ const PROFILES = {
       indexEvery: [0, 5],
     },
     choices: {
-      show: ["both", "lines", "dots"],
+      show: ["both", "lines"],
       cx: [0, 0.5, 1],
       cy: [0, 0.5, 1],
       floatCount: [0, 0, 0, 25, 50]
