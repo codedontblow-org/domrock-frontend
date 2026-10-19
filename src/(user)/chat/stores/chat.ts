@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
-import type { CenarioAlternativo, MensagemChat, PapelMensagem, RegraCampanha, ValorParametro } from '../types'
+import type { CenarioAlternativo, MensagemChat, PapelMensagem, RegraCampanha, ResultadoSimulacao, ValorParametro } from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
 
@@ -16,6 +16,9 @@ function novoChatId(): string {
 }
 
 export const useChatStore = defineStore('chat', () => {
+  const criadoEm = ref(new Date().toISOString())
+  const ultimaSimulacao = ref<ResultadoSimulacao | null>(null)
+  const regraSimulada = ref('')
   const chatId = ref(novoChatId())
   const mensagens = ref<MensagemChat[]>([])
   const regra = ref<RegraCampanha | null>(null)
@@ -27,6 +30,9 @@ export const useChatStore = defineStore('chat', () => {
   )
   const ocupado = computed(() => aguardandoLana.value || simulando.value)
   const podeSimular = computed(() => regra.value !== null && camposVazios.value.length === 0 && !ocupado.value)
+
+  const resultadoAtual = computed(() => regra.value && JSON.stringify(regra.value) === regraSimulada.value ? ultimaSimulacao.value : null)
+  const podePublicar = computed(() => podeSimular.value && resultadoAtual.value !== null)
 
   function adicionar(papel: PapelMensagem, texto: string, extras: Partial<MensagemChat> = {}): void {
     mensagens.value.push({ id: mensagens.value.length + 1, papel, texto, ...extras })
@@ -65,7 +71,10 @@ export const useChatStore = defineStore('chat', () => {
     if (!regra.value || !podeSimular.value) return
     simulando.value = true
     try {
-      const resultado = await servicoCampanha.simular(chatId.value, regra.value)
+      const snapshot = JSON.stringify(regra.value)
+      const resultado = await servicoCampanha.simular(chatId.value, JSON.parse(snapshot) as RegraCampanha)
+      ultimaSimulacao.value = resultado
+      regraSimulada.value = snapshot
       adicionar('resultado', resultado.explicacao, { resultado })
     } catch (erro) {
       adicionar('erro', descreverFalha(erro))
@@ -75,7 +84,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    chatId, mensagens, regra, aguardandoLana, simulando, ocupado, camposVazios, podeSimular,
+    criadoEm, resultadoAtual, podePublicar, chatId, mensagens, regra, aguardandoLana, simulando, ocupado, camposVazios, podeSimular,
     enviar, atualizarParametro, aplicarCenario, simular,
   }
 })

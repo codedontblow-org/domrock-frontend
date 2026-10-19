@@ -5,10 +5,25 @@ import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
+import ChatHeader from './components/ChatHeader.vue'
+import PublicarCampanhaModal from './components/PublicarCampanhaModal.vue'
+import { resumirCampanha } from './resumo'
 import { useChatStore } from './stores/chat'
 
 const chat = useChatStore()
 const { mensagens, regra, aguardandoLana, simulando, camposVazios, podeSimular } = storeToRefs(chat)
+const publicacaoAberta = ref(false)
+const erroPublicacao = ref('')
+const resumo = computed(() => regra.value ? resumirCampanha(regra.value, chat.resultadoAtual ?? undefined) : null)
+function abrirPublicacao() {
+  erroPublicacao.value = ''
+  publicacaoAberta.value = true
+}
+function publicar() {
+  // O backend atual só expõe chat e simulação; não confirmar uma submissão inexistente.
+  erroPublicacao.value = 'A publicação ainda não está disponível. Sua campanha não foi enviada. Tente novamente mais tarde.'
+}
+watch(() => chat.podePublicar, (pode) => { if (!pode) publicacaoAberta.value = false })
 const fimDaConversa = ref<HTMLElement | null>(null)
 // Recolher a ficha dá a largura toda ao chat (útil para ler o resultado da simulação).
 const fichaRecolhida = ref(false)
@@ -34,6 +49,13 @@ watch(() => mensagens.value.length, async () => {
     class="chat-page"
     :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
+      <ChatHeader v-if="regra" :nome="resumo?.nome ?? 'Campanha atual'" :data="chat.criadoEm"
+        :pode-publicar="chat.podePublicar" :painel-aberto="!fichaRecolhida"
+        @parametros="fichaRecolhida = !fichaRecolhida" @publicar="abrirPublicacao" />
+      <p v-if="regra && !chat.podePublicar && !chat.ocupado" class="pensando">Simule a versão atual da campanha para conferir e publicar.</p>
+      <PublicarCampanhaModal v-if="resumo" :aberto="publicacaoAberta" :campanha="resumo"
+        :comissoes="chat.resultadoAtual?.comissoes_periodo" :erro="erroPublicacao"
+        @fechar="publicacaoAberta = false" @publicar="publicar" />
       <div v-if="mensagens.length === 0" class="welcome">
         <h1>Olá, Roberval!</h1>
         <p>O que você tem em mente hoje?</p>
