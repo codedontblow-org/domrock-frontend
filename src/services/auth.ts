@@ -1,4 +1,5 @@
 import { api } from './api'
+import { router } from '@/router/index'
 
 export interface LoginResponse {
     token: string
@@ -33,4 +34,6 @@ export function encerrarSessao() {
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
     localStorage.removeItem('perfil')
+
+    router.push('/login')
 }

@@ -115,7 +115,20 @@
                 </form>
             </div>
 
-            <button form="login" type="submit" :disabled="isLoading" class="bg-[var(--color)] rounded p-2 text-body self-end w-2/4 hover:cursor-pointer transform transition hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none" :class="{'isLoading': 'bg-black-bg2 cursor-wait transform-none! translate-y-none!'}"> Entrar </button>
+            <button 
+                form="login" 
+                type="submit" 
+                :disabled="isLoading" 
+                class="bg-[var(--color)] rounded p-2 text-body self-end w-2/4 hover:cursor-pointer transform transition hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none" 
+                :class="{
+                    'bg-black-bg2 cursor-wait transform-none! translate-y-none!' : isLoading
+                }"> 
+                    {{
+                        isLoading
+                        ? 'Entrando'
+                        : 'Entrar'
+                    }}
+                </button>
         </div>
     </div>
 

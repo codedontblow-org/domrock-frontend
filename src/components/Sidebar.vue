@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
 import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
+import { encerrarSessao } from '@/services/auth'
 
 // Abaixo desta largura a barra começa recolhida e, aberta, fica por cima do conteúdo.
 const CONSULTA_CELULAR = '(max-width: 900px)'
+
+const profile = ref(localStorage.getItem("perfil") ?? '')
+const usuario = ref(
+  JSON.parse(localStorage.getItem('usuario') ?? 'null')
+)
+const username = ref(usuario.value?.nome ?? 'Usuário')
 
 const isCollapsed = ref(false)
 const isMobile = ref(false)
@@ -27,18 +34,26 @@ onMounted(() => {
 
 onBeforeUnmount(() => consultaCelular?.removeEventListener('change', acompanharLargura))
 
-const menuItems: MenuItem[] = [
-    //pluscircle  
-    { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle' },
-    //piggybank
-    { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank' },
-    //calendar4event
-    { id: 'agendado', label: 'Agendado', icon: 'bi bi-calendar4-event' },
-    //clipboard
-    { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard' },
-    //gear
-    { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear' }
-]
+const menuItems = computed<MenuItem[]> (() => {
+    if (profile.value === 'ADMIN') {
+      return [
+        { id: 'usuarios', label: 'Usuários', icon: 'bi bi-people' },
+      ]
+    }
+
+    return [
+      //pluscircle  
+      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle' },
+      //piggybank
+      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank' },
+      //calendar4event
+      { id: 'agendado', label: 'Agendado', icon: 'bi bi-calendar4-event' },
+      //clipboard
+      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard' },
+      //gear
+      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear' }
+    ]
+})
 
 const chats = ref<Chat[]>([
   { id: 1, titulo: 'Títulos do chat', data: '16/11' },
@@ -49,8 +64,8 @@ const chats = ref<Chat[]>([
 ])
 
 const user = ref<User>({
-  nome: 'Roberval Silva',
-  cargo: 'Gerente de Vendas'
+  nome: username.value,
+  cargo: profile.value,
 })
 
 const activeItem = ref<string>('nova-campanha')
@@ -100,7 +115,7 @@ function selectItem(id: string): void {
       </button>
     </nav>
 
-    <div class="sidebar-chats">
+    <div v-if="chats.length > 0" class="sidebar-chats">
       <div class="chats-header">
         <span class="chats-title">Seus Chats</span>
         <i class="chats-sort-icon bi bi-arrow-down-up"></i>
@@ -124,7 +139,7 @@ function selectItem(id: string): void {
         <span class="user-role">{{ user.cargo }}</span>
       </div>
 
-      <button class="logout-btn">
+      <button class="logout-btn" @click="encerrarSessao">
         <i class="logout-icon bi bi-power"></i>
       </button>
     </div>
@@ -141,6 +156,7 @@ function selectItem(id: string): void {
 }
 
 .sidebar {
+  border-right: 2px solid var(--color-black-bg2);
   transition: 
     width 0.25s ease,
     flex-basis 0.25s ease,
@@ -154,7 +170,7 @@ function selectItem(id: string): void {
   top: 0;
   align-self: flex-start;
   height: 100dvh;
-  background-color:var(--color-black-bg2);
+  background-color:var(--color-black-bg1);
   color: var(--color-white-txt1);
   padding: 16px;
   box-sizing: border-box;
@@ -271,7 +287,6 @@ function selectItem(id: string): void {
 }
 
 .sidebar-chats {
-  flex: 1;
   overflow-y: auto;
 }
 
@@ -314,7 +329,13 @@ function selectItem(id: string): void {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid var(--color-gray-txt3);
+  padding-inline: 16px;
+  border-top: 2px solid var(--color-black-bg2);
+  margin-top: auto;
+
+  margin-inline: -16px;
+  width: calc(100% + 32px);
+  box-sizing: border-box;
 }
 
 .user-name {
@@ -327,13 +348,25 @@ function selectItem(id: string): void {
   display: block;
   font-size: 11px;
   color: var(--color-gray-txt2);
+
+  text-transform: lowercase;
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
 }
 
 .logout-btn {
+  padding-inline: 10px;
   background: none;
   border: none;
   color: var(--color-white-txt1);
   cursor: pointer;
+  transition: color ease-out 150ms;
+
+  &:hover{
+    color: var(--color-red);
+  }
 }
 
 .brand-name {
