@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { usuarioLogado } from '@/services/auth'
+import { saudacao } from './formatacao'
 import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
@@ -21,6 +23,7 @@ const statusFicha = computed(() => {
 const placeholderDoCampo = computed(() =>
   mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana',
 )
+const textoSaudacao = saudacao(usuarioLogado()?.nome)
 
 // Mantém a última mensagem (ou o resultado) visível quando algo novo chega.
 watch(() => mensagens.value.length, async () => {
@@ -35,7 +38,7 @@ watch(() => mensagens.value.length, async () => {
     :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
-        <h1>Olá, Roberval!</h1>
+        <h1>{{ textoSaudacao }}</h1>
         <p>O que você tem em mente hoje?</p>
       </div>
 
