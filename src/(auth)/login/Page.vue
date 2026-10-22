@@ -12,7 +12,7 @@
     const erro = ref('')
     const isLoading = ref(false)
 
-    const submeterLogin = async () => {
+   const submeterLogin = async () => {
         erro.value = ''
         
         if(email.value === '' || senha.value === '') {
@@ -22,8 +22,14 @@
         
         isLoading.value = true
         try {
-            await login(email.value, senha.value)
-            await router.push('/')
+            const dados = await login(email.value, senha.value)
+            
+            // Redirecionamento explícito que resolve o bug do F5
+            if (dados.perfil === 'ADMIN') {
+                await router.push('/admin')
+            } else {
+                await router.push('/')
+            }
         }
         catch (error) {
             const status = isAxiosError(error) ? error.response?.status : undefined
