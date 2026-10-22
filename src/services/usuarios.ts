@@ -36,6 +36,6 @@ export async function ativarById(id: number): Promise<Usuario> {
 }
 
 export async function getResumo(): Promise<ResumoUsuarios> {
-    const response = await api.get('/usuarios/resumo')
+    const response = await api.get('/api/usuarios/resumo')
     return response.data
 }

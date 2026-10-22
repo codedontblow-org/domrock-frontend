@@ -71,10 +71,9 @@ function selecionarPerfil(valor: string) {
     </div>
 
     <div class="flex flex-col gap-4 w-full">
-      <p class="text-[16px]">
-        Visualizando {{ totalUsuarios }} usuários - {{ ativosCount }} ativos e {{ desativadosCount }} desativado{{ desativadosCount !== 1 ? 's' : '' }}
-      </p>
-
+     <p class="text-[16px]">
+      Visualizando {{ totalUsuarios }} usuários &bull; {{ ativosCount }} ativos e {{ desativadosCount }} desativado{{ desativadosCount !== 1 ? 's' : '' }}
+    </p>
       <div class="border border-white-txt3 rounded-lg overflow-x-auto overscroll-x-none relative shadow-lg">
         <div v-if="carregando" class="absolute inset-0 bg-black/50 flex justify-center items-center backdrop-blur-sm z-10 cursor-wait">
           <span class="text-white-txt1">Carregando...</span>

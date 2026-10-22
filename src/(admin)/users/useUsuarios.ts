@@ -150,10 +150,19 @@ export function useUsuarios() {
       await carregarDados()
       fecharModal()
     } catch (error: any) {
-      if (error.response?.status === 409 || error.response?.status === 400) {
-        errorMessage.value = error.response.data.message || 'Dados inválidos ou e-mail já cadastrado.'
+      const status = error.response?.status;
+      const data = error.response?.data;
+
+      if (data && data.message) {
+        errorMessage.value = data.message;
+      } else if (status === 409) {
+        errorMessage.value = 'Já existe um usuário com este e-mail.';
+      } else if (status === 400) {
+        errorMessage.value = 'Operação inválida. Você não pode alterar regras críticas da sua própria conta.';
+      } else if (status === 403) {
+        errorMessage.value = 'Acesso negado. Apenas Administradores podem realizar esta ação.';
       } else {
-        errorMessage.value = 'Ocorreu um erro inesperado.'
+        errorMessage.value = 'Erro de comunicação com o servidor.';
       }
     } finally {
       isSaving.value = false
@@ -173,9 +182,17 @@ export function useUsuarios() {
       }
       await carregarDados()
       fecharModalConfirmacao()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao alterar status:", error)
-      errorMessage.value = 'Erro ao alterar o status do usuário.'
+      const data = error.response?.data;
+      
+      if (error.response?.status === 400) {
+        alert(data?.message || 'Você não pode desativar a própria conta.');
+      } else if (error.response?.status === 403) {
+        alert('Acesso negado. Apenas Administradores podem desativar usuários.');
+      } else {
+        alert('Erro ao alterar o status do usuário.');
+      }
     } finally {
       isToggling.value = false
     }
