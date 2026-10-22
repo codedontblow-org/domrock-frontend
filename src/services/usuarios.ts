@@ -1,4 +1,4 @@
-import type { Usuario, PostUsuarioDTO, PutUsuarioDTO } from '@/types/usuarios';
+import type { Usuario, PostUsuarioDTO, PutUsuarioDTO, ResumoUsuarios } from '@/types/usuarios';
 import type { Page } from '@/types/pagination';
 
 import { api } from './api'
@@ -31,6 +31,11 @@ export async function desativarById(id: number): Promise<Usuario> {
 }
 
 export async function ativarById(id: number): Promise<Usuario> {
-    const response = await api.patch<Usuario>(`/api/usuarios/${id}/ativar`)
+    const response = await api.patch<Usuario>(`/api/usuarios/${id}/reativar`)
+    return response.data
+}
+
+export async function getResumo(): Promise<ResumoUsuarios> {
+    const response = await api.get('/usuarios/resumo')
     return response.data
 }

@@ -20,3 +20,9 @@ export interface PutUsuarioDTO{
     email: string;
     perfil: Perfil;
 }
+
+export interface ResumoUsuarios {
+  total: number;
+  ativos: number;
+  desativados: number;
+}
