@@ -168,6 +168,30 @@ defineProps<ListaCampanha>()
   line-height: var(--text-metadata--line-height);
 }
 
+/* Notebooks menores */
+@media (max-width: 1366px) {
+  .card-content {
+    padding: 16px 18px 13px;
+  }
+
+  .metrics {
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .metric {
+    gap: 10px;
+  }
+
+  .metric-icon {
+    font-size: 28px;
+  }
+
+  .card-footer {
+    padding: 10px 18px;
+  }
+}
+
 @media (max-width: 600px) {
   .card-content {
     padding: 17px 14px;

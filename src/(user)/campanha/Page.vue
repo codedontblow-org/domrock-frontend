@@ -3,8 +3,13 @@
 import TabelaCampanhas from './components/TabelaCampanhas.vue'
 import AvisoCampanha from './components/AvisoCampanha.vue'
 import CarrosselCampanha from './components/CarrosselCampanha.vue'
+import PainelAprovacao from './components/PainelAprovacao.vue'
+import { computed, ref } from 'vue'
+import type { CampanhaAprovacao, Interferencia } from './types'
 
-const campanhasAprovacao = [
+const ehSupervisor = localStorage.getItem('perfil') === 'SUPERVISOR'
+
+const campanhasAprovacao = ref<CampanhaAprovacao[]>([
   {
     id: 1,
     titulo: 'Acréscimo para o cargo Vendedor loja no final do mês',
@@ -17,6 +22,16 @@ const campanhasAprovacao = [
     sugeridoPor: 'Roberval Silva',
     submetidoEm: '16/11',
     status: 'Sem conflitos',
+    descricao:
+      'Todas as vendas realizadas pelos funcionários com o cargo Vendedor loja entre os dias 23/11 e 30/11 terão um acréscimo de 1%, totalizando 1,5% de comissionamento para esse cargo durante esse período.',
+    acrescimos: { base: '1.00%', vigente: '+0.25%', acrescimo: '+1.50%', total: '+1.75%' },
+    marcas: ['Preto', 'Cinza'],
+    cargos: ['Vendedor loja'],
+    interferencias: [
+      { id: 1, tipo: 'Intercorrência', descricao: 'Faltas abonadas para Vendedores loja na semana' },
+      { id: 2, tipo: 'Campanha', descricao: 'Acréscimo de +0,25% para Vendedores loja' },
+      { id: 3, tipo: 'Intercorrência', descricao: 'Sem estoque de produtos da marca Cinza' },
+    ],
   },
   {
     id: 2,
@@ -70,7 +85,30 @@ const campanhasAprovacao = [
     submetidoEm: '20/11',
     status: 'Sem conflitos',
   },
-]
+])
+
+const idSelecionado = ref<CampanhaAprovacao['id'] | null>(null)
+const campanhaSelecionada = computed(
+  () => campanhasAprovacao.value.find((campanha) => campanha.id === idSelecionado.value) ?? null,
+)
+
+function abrirCampanha(campanha: CampanhaAprovacao) {
+  idSelecionado.value = campanha.id
+}
+
+function fecharCampanha() {
+  idSelecionado.value = null
+}
+
+function concluirDecisao(campanha: CampanhaAprovacao) {
+  campanhasAprovacao.value = campanhasAprovacao.value.filter((item) => item.id !== campanha.id)
+  fecharCampanha()
+}
+
+function devolverCampanha(campanha: CampanhaAprovacao, comentario: string, interferencias: Interferencia[]) {
+  console.info('Devolver campanha', campanha.id, { comentario, interferencias })
+  concluirDecisao(campanha)
+}
 
 const campanhas = [
   {
@@ -166,7 +204,6 @@ const campanhas = [
 
 <template>
   <main class="page">
-    <!-- Seção 1: Título e aviso -->
     <section class="intro-section">
       <header class="page-header">
         <h1>Campanhas</h1>
@@ -177,20 +214,26 @@ const campanhas = [
       </div>
     </section>
 
-    <!-- Seção 2: Campanhas aguardando aprovação -->
     <section class="approvals-section">
       <header class="section-header">
         <h2>Aguardando Aprovação</h2>
 
-        <p class="section-description">
-          Clique em uma campanha para ver mais detalhes!
+        <p v-if="ehSupervisor" class="section-description">
+          Você está visualizando como um Supervisor! Clique em uma campanha para ver mais detalhes,
+          aprovar, arquivar ou devolver.
+        </p>
+        <p v-else class="section-description">
+          Sugestões de campanhas que estão aguardando aprovação de um supervisor.
         </p>
       </header>
 
-      <CarrosselCampanha :campanhas="campanhasAprovacao" />
+      <CarrosselCampanha
+        :campanhas="campanhasAprovacao"
+        :selecionavel="ehSupervisor"
+        @selecionar="abrirCampanha"
+      />
     </section>
 
-    <!-- Seção 3: Campanhas passadas -->
     <section class="campaigns-section">
       <header class="section-header">
         <h2>Campanhas Passadas</h2>
@@ -203,6 +246,15 @@ const campanhas = [
 
       <TabelaCampanhas :campanhas="campanhas" />
     </section>
+
+    <PainelAprovacao
+      v-if="ehSupervisor"
+      :campanha="campanhaSelecionada"
+      @fechar="fecharCampanha"
+      @aprovar="concluirDecisao"
+      @arquivar="concluirDecisao"
+      @devolver="devolverCampanha"
+    />
   </main>
 </template>
 
@@ -219,7 +271,6 @@ const campanhas = [
   font-family: var(--font-raleway);
 }
 
-/* Seção 1: título e aviso */
 .intro-section {
   margin-bottom: 52px;
 }
@@ -235,12 +286,10 @@ const campanhas = [
   font-family: var(--font-forum);
 }
 
-/* Aviso próximo ao título */
 .notice-section {
   margin: 0;
 }
 
-/* Seções 2 e 3 */
 .approvals-section {
   margin-bottom: 56px;
 }
@@ -249,7 +298,6 @@ const campanhas = [
   margin-bottom: 24px;
 }
 
-/* Cabeçalho interno das seções */
 .section-header {
   margin-bottom: 16px;
 }
@@ -269,7 +317,20 @@ const campanhas = [
   font-weight: 400;
 }
 
-/* Telas médias */
+@media (max-width: 1366px) {
+  .page {
+    padding: 32px 16px 24px;
+  }
+
+  .intro-section {
+    margin-bottom: 40px;
+  }
+
+  .approvals-section {
+    margin-bottom: 44px;
+  }
+}
+
 @media (max-width: 768px) {
   .page {
     padding: 32px 12px 24px;
@@ -297,7 +358,6 @@ const campanhas = [
   }
 }
 
-/* Celulares */
 @media (max-width: 600px) {
   .page {
     padding: 26px 10px 20px;

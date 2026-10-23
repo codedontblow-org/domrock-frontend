@@ -19,7 +19,7 @@ const ordenarPor = ref('inicio')
 const ordem = ref('crescente')
 
 // Paginação
-const itensPorPagina = 10
+const itensPorPagina = 8
 const paginaAtual = ref(1)
 
 function converterData(data: string): number {

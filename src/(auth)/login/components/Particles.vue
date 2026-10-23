@@ -19,7 +19,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+// @ts-nocheck -- animação de canvas escrita em JS; tipar quando for mexer nela
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 function resolveColor(value) {

@@ -10,6 +10,8 @@ import { useChatStore } from './stores/chat'
 const chat = useChatStore()
 const { mensagens, regra, aguardandoLana, simulando, camposVazios, podeSimular } = storeToRefs(chat)
 const fimDaConversa = ref<HTMLElement | null>(null)
+// Saudação com o primeiro nome de quem está logado (salvo no login).
+const primeiroNome = (JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nome ?? '').trim().split(/\s+/)[0]
 // Recolher a ficha dá a largura toda ao chat (útil para ler o resultado da simulação).
 const fichaRecolhida = ref(false)
 const statusFicha = computed(() => {
@@ -35,7 +37,7 @@ watch(() => mensagens.value.length, async () => {
     :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
-        <h1>Olá, Roberval!</h1>
+        <h1>{{ primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!' }}</h1>
         <p>O que você tem em mente hoje?</p>
       </div>
 

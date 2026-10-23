@@ -45,15 +45,15 @@ const menuItems = computed<MenuItem[]> (() => {
 
     return [
       //pluscircle  
-      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle' },
+      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle', rota: '/ '},
       //piggybank
-      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank' },
+      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: '/campanha' },
       //calendar4event
-      { id: 'agendado', label: 'Agendado', icon: 'bi bi-calendar4-event' },
+      { id: 'vigente', label: 'Vigente', icon: 'bi bi-calendar4-event', rota: '/vigente' },
       //clipboard
-      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard' },
+      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard', rota: '/relatorios' },
       //gear
-      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear' }
+      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear', rota: '/configuracoes' }
     ]
 })
 

@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
     import Particles from './components/Particles.vue'
     import { ref, computed, nextTick } from 'vue'
+    import { isAxiosError } from 'axios'
     import { router } from '@/router/index'
     import { login } from '@/services/auth.ts'
 
@@ -25,12 +26,12 @@
             await router.push('/')
         }
         catch (error) {
-            if(error.response?.status === 401) {
+            if(isAxiosError(error) && error.response?.status === 401) {
                 await nextTick()
                 dispararErro('Email ou senha inválidos! Tente novamente.')
             }
             else
-            if (error.response?.status === 400) {
+            if (isAxiosError(error) && error.response?.status === 400) {
                 await nextTick()
                 dispararErro('Algo parece errado com os dados informados!')
             }
@@ -61,7 +62,7 @@
     const particleProfiles = ["ring", "grid"]
     const profile = particleProfiles[Math.floor(Math.random() * particleProfiles.length)]
 
-    const dispararErro = async (mensagem) => {
+    const dispararErro = async (mensagem: string) => {
         await nextTick()
         erro.value = mensagem        
     }
@@ -99,7 +100,7 @@
                         <label for="password" class="text-label">Senha</label>
 
                         <div class="flex bg-black-bg2 px-3 py-2 pr-0 rounded has-[input:focus]:outline has-[input:focus]:outline-[var(--color)] transition-colors ease-out has-[button:active]:text-[var(--color)]">
-                            <input :type="[showPassword ? 'text' : 'password']"v-model="senha" id="password" placeholder="Sua senha" class="outline-none flex-1 text-body">
+                            <input :type="showPassword ? 'text' : 'password'" v-model="senha" id="password" placeholder="Sua senha" class="outline-none flex-1 text-body">
                             
                             <button type="button" class="px-3 cursor-pointer transition ease-out rounded-r hover:scale-[1.15] active:text-[var(--color)] active:scale-[0.9]" @click="showPassword = !showPassword">
                                 <i class="bi" :class="[showPassword ? 'bi-eye':'bi-eye-slash']"></i>

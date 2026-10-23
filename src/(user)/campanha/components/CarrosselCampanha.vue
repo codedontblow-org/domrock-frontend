@@ -1,24 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ListaCampanha from './ListaCampanha.vue'
-
-export interface CampanhaAprovacao {
-  id: number | string
-  titulo: string
-  inicio: string
-  fim: string
-  percentual: string
-  retorno: string
-  investimento: string
-  cargosEProdutos: string
-  sugeridoPor: string
-  submetidoEm: string
-  status: string
-}
+import type { CampanhaAprovacao } from '../types'
 
 const props = defineProps<{
   campanhas: CampanhaAprovacao[]
+  selecionavel?: boolean
 }>()
+
+const emit = defineEmits<{
+  selecionar: [campanha: CampanhaAprovacao]
+}>()
+
+function selecionar(campanha: CampanhaAprovacao) {
+  if (props.selecionavel) emit('selecionar', campanha)
+}
 
 const carrossel = ref<HTMLElement | null>(null)
 const indiceAtual = ref(0)
@@ -119,6 +115,13 @@ function avancar() {
         v-for="campanha in campanhas"
         :key="campanha.id"
         class="campanha-card"
+        :class="{ 'campanha-card--selecionavel': selecionavel }"
+        :role="selecionavel ? 'button' : undefined"
+        :tabindex="selecionavel ? 0 : undefined"
+        :aria-label="selecionavel ? `Ver detalhes da campanha ${campanha.titulo}` : undefined"
+        @click="selecionar(campanha)"
+        @keydown.enter.prevent="selecionar(campanha)"
+        @keydown.space.prevent="selecionar(campanha)"
       >
         <ListaCampanha
           :titulo="campanha.titulo"
@@ -178,7 +181,7 @@ function avancar() {
 
 .carrossel-lista {
   display: flex;
-  gap: 10px;
+  gap: 20px;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -192,9 +195,26 @@ function avancar() {
 }
 
 .campanha-card {
-  flex: 0 0 calc((100% - 28px) / 2.5);
+  flex: 0 0 min(calc((100% - 8px) / 2.5), 500px);
   min-width: 280px;
   scroll-snap-align: start;
+}
+
+.campanha-card--selecionavel {
+  cursor: pointer;
+}
+
+.campanha-card--selecionavel:focus-visible {
+  outline: none;
+}
+
+.campanha-card--selecionavel :deep(.approval-card) {
+  transition: border-color 0.2s ease;
+}
+
+.campanha-card--selecionavel:hover :deep(.approval-card),
+.campanha-card--selecionavel:focus-visible :deep(.approval-card) {
+  border-color: var(--color-blue);
 }
 
 .carrossel-seta {
@@ -225,9 +245,16 @@ function avancar() {
   cursor: not-allowed;
 }
 
+@media (max-width: 1366px) {
+  .campanha-card {
+    flex-basis: min(calc((100% - 4px) / 2), 500px);
+    min-width: 260px;
+  }
+}
+
 @media (max-width: 900px) {
   .campanha-card {
-    flex-basis: calc((100% - 14px) / 1.5);
+    flex-basis: calc((100% - 4px) / 1.5);
   }
 }
 

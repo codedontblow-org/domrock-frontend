@@ -20,6 +20,26 @@ export const router = createRouter({
           path: '',
           name: 'chat',
           component: ChatPage,
+        },
+        {
+          path: 'campanha',
+          name: 'campanha',
+          component: CampanhaPage,
+        },
+        {
+          path: 'vigente',
+          name: 'vigente',
+          component: VigentePage,
+        },
+        {
+          path: 'relatorios',
+          name: 'relatorios',
+          component: RelatoriosPage,
+        },
+        {
+          path: 'configuracoes',
+          name: 'configuracoes',
+          component: ConfiguracoesPage,
         }
       ]
     },
