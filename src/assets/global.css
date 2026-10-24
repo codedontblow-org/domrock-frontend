@@ -12,6 +12,7 @@
   --font-source-code-pro: "Source Code Pro", monospace;
   --font-raleway: "Raleway", sans-serif;
   --font-forum: "Forum", serif;
+  --font-label: "Inconsolata", monospace;
 
 
   /* ========================================
@@ -59,6 +60,7 @@
   --color-white-bg1: var(--white-bg1);
   --color-white-bg2: var(--white-bg2);
   --color-white-txt1: var(--white-txt1);
+  --color-white-txt3: var(--white-txt3);
 
 
   /* ========================================
@@ -181,6 +183,7 @@
   /* White */
 
   --white-txt1: #F1F3F5;
+  --white-txt3: #747981;
 
 
   /* Gray */
