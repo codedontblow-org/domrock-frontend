@@ -10,7 +10,7 @@ import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import { useChatStore } from './stores/chat'
 
 const chat = useChatStore()
-const { mensagens, regra, aguardandoLana, simulando, camposVazios, podeSimular } = storeToRefs(chat)
+const { mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular } = storeToRefs(chat)
 const fimDaConversa = ref<HTMLElement | null>(null)
 // Recolher a ficha dá a largura toda ao chat (útil para ler o resultado da simulação).
 const fichaRecolhida = ref(false)
@@ -49,7 +49,10 @@ watch(() => mensagens.value.length, async () => {
           <SpeechBubble v-else :message="mensagem.texto" :papel="mensagem.papel" />
         </template>
         <p v-if="aguardandoLana" class="pensando">A Lana está escrevendo…</p>
-        <p v-if="simulando" class="pensando">A Lana está gerando o código da regra e simulando sobre os dados reais…</p>
+        <!-- A etapa vem pronta do backend (contrato 4.2); o front só mostra. -->
+        <p v-if="simulando" class="pensando">
+          <template v-if="etapaSimulacao">{{ etapaSimulacao }} · </template>A Lana está gerando o código da regra e simulando sobre os dados reais…
+        </p>
         <div ref="fimDaConversa" class="fim-da-conversa" />
       </div>
 

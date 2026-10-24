@@ -76,6 +76,21 @@ describe('useChatStore', () => {
     expect(chat.simulando).toBe(false)
   })
 
+  it('mostra a etapa que o backend manda enquanto simula e limpa ao terminar', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Black Friday')
+    servico.etapas = ['Na fila', 'Simulando']
+    servico.segurarSimulacao = true
+
+    const simulacao = chat.simular()
+    expect(chat.etapaSimulacao).toBe('Simulando')
+
+    servico.liberarSimulacao()
+    await simulacao
+    expect(chat.etapaSimulacao).toBeNull()
+    expect(chat.simulando).toBe(false)
+  })
+
   it('manda ao agente o painel com as edições do usuário', async () => {
     const chat = useChatStore()
     await chat.enviar('Black Friday')
