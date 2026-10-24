@@ -18,9 +18,11 @@ export async function updateById(id: number, usuario: PutUsuarioDTO): Promise<Us
     return response.data
 }
 
-export async function listAll(page?: number, size?: number): Promise<Page<Usuario>> {
+export async function listAll(page?: number, size?: number, sort?: string[]): Promise<Page<Usuario>> {
     const response = await api.get<Page<Usuario>>('/api/usuarios', {
-        params: {page,size}
+        params: { page, size, sort },
+        // O Spring lê cada critério como um `sort` separado; sem isso o axios manda `sort[]=` e ele ignora.
+        paramsSerializer: { indexes: null }
     })
     return response.data
 }
