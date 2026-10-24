@@ -21,6 +21,8 @@ export const useChatStore = defineStore('chat', () => {
   const regra = ref<RegraCampanha | null>(null)
   const aguardandoLana = ref(false)
   const simulando = ref(false)
+  /** Etapa do job que o backend informa ("Na fila", "Simulando"); null fora da simulação. */
+  const etapaSimulacao = ref<string | null>(null)
 
   const camposVazios = computed(() =>
     (regra.value?.parametros ?? []).filter((p) => p.required && estaVazio(p.value)).map((p) => p.key),
@@ -65,17 +67,20 @@ export const useChatStore = defineStore('chat', () => {
     if (!regra.value || !podeSimular.value) return
     simulando.value = true
     try {
-      const resultado = await servicoCampanha.simular(chatId.value, regra.value)
+      const resultado = await servicoCampanha.simular(chatId.value, regra.value, (etapa) => {
+        etapaSimulacao.value = etapa
+      })
       adicionar('resultado', resultado.explicacao, { resultado })
     } catch (erro) {
       adicionar('erro', descreverFalha(erro))
     } finally {
       simulando.value = false
+      etapaSimulacao.value = null
     }
   }
 
   return {
-    chatId, mensagens, regra, aguardandoLana, simulando, ocupado, camposVazios, podeSimular,
+    chatId, mensagens, regra, aguardandoLana, simulando, etapaSimulacao, ocupado, camposVazios, podeSimular,
     enviar, atualizarParametro, aplicarCenario, simular,
   }
 })

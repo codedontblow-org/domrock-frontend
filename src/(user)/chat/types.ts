@@ -90,6 +90,34 @@ export interface FalhaSimulacao {
   erros?: string[]
 }
 
+/** Status do job de simulação (contrato 4). */
+export type StatusSimulacao = 'PENDENTE' | 'RODANDO' | 'CONCLUIDA' | 'ERRO'
+
+/** Resposta 202 do POST /api/simulacoes: o job criado (contrato 4.1). */
+export interface SimulacaoCriada {
+  id: number
+  status: StatusSimulacao
+  etapa: string
+}
+
+interface CamposDoJob {
+  id: number
+  /** Texto pronto para o usuário ("Na fila", "Simulando", ...). */
+  etapa: string
+  chat_id: string
+  campanha_id: number | null
+  criada_em: string
+  concluida_em: string | null
+  duracao_ms: number | null
+  ficha: RegraCampanha
+}
+
+/** GET /api/simulacoes/{id} (contrato 4.2): `resultado` só na conclusão, `erro` só no ERRO. */
+export type SimulacaoAndamento =
+  | (CamposDoJob & { status: 'PENDENTE' | 'RODANDO'; resultado: null; erro: null })
+  | (CamposDoJob & { status: 'CONCLUIDA'; resultado: ResultadoSimulacao; erro: null })
+  | (CamposDoJob & { status: 'ERRO'; resultado: null; erro: FalhaSimulacao })
+
 export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro'
 
 export interface MensagemChat {
