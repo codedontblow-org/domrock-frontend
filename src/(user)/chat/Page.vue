@@ -7,6 +7,7 @@ import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
+import FerramentasDropdown from './components/FerramentasDropdown.vue'
 import { useChatStore } from './stores/chat'
 
 const chat = useChatStore()
@@ -28,6 +29,7 @@ const textoSaudacao = saudacao(usuarioLogado()?.nome)
 // Mantém a última mensagem (ou o resultado) visível quando algo novo chega.
 watch(() => mensagens.value.length, async () => {
   await nextTick()
+  console.log(mensagens.value)
   fimDaConversa.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
 })
 </script>
@@ -35,7 +37,7 @@ watch(() => mensagens.value.length, async () => {
 <template>
   <div
     class="chat-page"
-    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
+    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra, 'ficha-recolhida': regra && fichaRecolhida }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
         <h1>{{ textoSaudacao }}</h1>
@@ -44,6 +46,10 @@ watch(() => mensagens.value.length, async () => {
 
       <div v-else class="messages" aria-live="polite">
         <template v-for="mensagem in mensagens" :key="mensagem.id">
+          <FerramentasDropdown
+            v-if="mensagem.papel === 'agente' && mensagem.events && mensagem.events.length > 0"
+            :events="mensagem.events"
+          />
           <ResultadoSimulacao v-if="mensagem.resultado" :resultado="mensagem.resultado"
             @aplicar-cenario="chat.aplicarCenario" />
           <SpeechBubble v-else :message="mensagem.texto" :papel="mensagem.papel" />
@@ -53,6 +59,11 @@ watch(() => mensagens.value.length, async () => {
         <p v-if="simulando" class="pensando">
           <template v-if="etapaSimulacao">{{ etapaSimulacao }} · </template>A Lana está gerando o código da regra e simulando sobre os dados reais…
         </p>
+        
+        <div class="flex items-center gap-3 self-start">
+          <i class="bi bi-info-circle text-label text-gray-txt2-dark"></i>
+          <p class="text-label text-gray-txt2-dark">Até a Lana pode cometer erros! Valide todas as informações antes de compartilhar uma campanha.</p>
+        </div>
         <div ref="fimDaConversa" class="fim-da-conversa" />
       </div>
 
@@ -172,8 +183,8 @@ watch(() => mensagens.value.length, async () => {
 
 .com-ficha .conversa {
   width: 100%;
-  max-width: 860px;
-  margin: 0 auto;
+  flex: 1;
+  min-width: 0;
 }
 
 .ficha-lateral {
@@ -189,6 +200,8 @@ watch(() => mensagens.value.length, async () => {
 
 .ficha-lateral--recolhida {
   width: 44px;
+  min-width: 44px;
+  flex-shrink: 0;
 }
 
 /* O conteúdo mantém a largura aberta e é cortado enquanto a ficha encolhe, sem reflow. */
@@ -199,6 +212,9 @@ watch(() => mensagens.value.length, async () => {
 
 .ficha-lateral--recolhida .ficha-conteudo {
   opacity: 0;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
 }
 
 .ficha-trilho {
