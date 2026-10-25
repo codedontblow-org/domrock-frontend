@@ -7,7 +7,6 @@ export interface OpcaoParametro {
   label: string
 }
 
-// Uma das pontas pode vir null quando o usuário só disse "a partir de 24/11".
 export interface Periodo {
   data_inicio: string | null
   data_fim: string | null
@@ -54,7 +53,6 @@ export interface ImpactoPessoas {
   maior_acrescimo: number
 }
 
-// Variação da regra já simulada pela Lana (nunca estimada pela LLM), pronta para ir ao painel.
 export interface CenarioAlternativo {
   tipo: 'ajustar_acrescimo' | 'sem_marca'
   titulo: string
@@ -117,6 +115,27 @@ export type SimulacaoAndamento =
   | (CamposDoJob & { status: 'PENDENTE' | 'RODANDO'; resultado: null; erro: null })
   | (CamposDoJob & { status: 'CONCLUIDA'; resultado: ResultadoSimulacao; erro: null })
   | (CamposDoJob & { status: 'ERRO'; resultado: null; erro: FalhaSimulacao })
+
+/** Simulação que terminou: o `id` é o que o salvar da campanha pede (contrato 5.3). */
+export interface SimulacaoConcluida {
+  id: number
+  resultado: ResultadoSimulacao
+}
+
+/** O que o chat usa do objeto Campanha (contrato 5.2) devolvido pelo salvar e pelo submeter. */
+export interface CampanhaSalva {
+  id: number
+  nome: string
+  status: string
+}
+
+/**
+ * Onde a conversa está no caminho até a aprovação. `desatualizada`: o painel mudou depois da
+ * última simulação, e o backend submete sempre a última simulação concluída. `fora_do_orcamento`:
+ * o custo simulado passa do orçamento, e só campanha que cabe vai para aprovação.
+ */
+export type EtapaAprovacao =
+  | 'sem_simulacao' | 'desatualizada' | 'fora_do_orcamento' | 'pronta' | 'enviando' | 'enviada' | 'somente_leitura'
 
 export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro'
 

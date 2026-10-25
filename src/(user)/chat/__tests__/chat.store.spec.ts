@@ -112,3 +112,127 @@ describe('useChatStore', () => {
     expect(servico.conversas.map((c) => c.mensagem)).toEqual(['um'])
   })
 })
+
+describe('enviar para aprovação', () => {
+  let servico: FakeServicoCampanha
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    servico = new FakeServicoCampanha()
+    definirServicoCampanha(servico)
+  })
+
+  it('só libera depois de uma simulação concluída', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+
+    expect(chat.etapaAprovacao).toBe('sem_simulacao')
+    await chat.enviarParaAprovacao('Natal 2025')
+
+    expect(servico.salvamentos).toHaveLength(0)
+  })
+
+  it('salva a campanha com a última simulação e a submete', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+    await chat.simular()
+    await chat.simular()
+
+    await chat.enviarParaAprovacao('  Natal 2025 ')
+
+    expect(servico.salvamentos).toEqual([{ chatId: chat.chatId, simulacaoId: 346, nome: 'Natal 2025' }])
+    expect(servico.submissoes).toEqual([12])
+    expect(chat.etapaAprovacao).toBe('enviada')
+    expect(chat.mensagens[chat.mensagens.length - 1]?.texto).toContain('Aguardando Aprovação')
+  })
+
+  it('pede nova simulação se o painel mudou depois de simular', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+    await chat.simular()
+
+    chat.atualizarParametro('pct_acrescimo', 2)
+    await chat.enviarParaAprovacao('Natal 2025')
+
+    expect(chat.etapaAprovacao).toBe('desatualizada')
+    expect(servico.salvamentos).toHaveLength(0)
+  })
+
+  it('não envia campanha que passa do orçamento', async () => {
+    servico.resultado = resultadoBlackFriday(false)
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+    await chat.simular()
+
+    await chat.enviarParaAprovacao('Natal 2025')
+
+    expect(chat.etapaAprovacao).toBe('fora_do_orcamento')
+    expect(servico.salvamentos).toHaveLength(0)
+  })
+
+  it('libera o envio quando a nova simulação cabe no orçamento', async () => {
+    servico.resultado = resultadoBlackFriday(false)
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+    await chat.simular()
+
+    servico.resultado = resultadoBlackFriday(true)
+    await chat.simular()
+
+    expect(chat.etapaAprovacao).toBe('pronta')
+  })
+
+  it('se o submeter falha, a nova tentativa só submete a campanha já salva', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+    await chat.simular()
+    servico.falhaSubmeter = erroHttp(409, { message: 'Campanha em AGUARDANDO_APROVACAO' })
+
+    await chat.enviarParaAprovacao('Natal 2025')
+    expect(chat.mensagens[chat.mensagens.length - 1]).toMatchObject({ papel: 'erro', texto: 'Campanha em AGUARDANDO_APROVACAO' })
+    expect(chat.etapaAprovacao).toBe('pronta')
+
+    await chat.enviarParaAprovacao('Natal 2025')
+    expect(servico.salvamentos).toHaveLength(1)
+    expect(servico.submissoes).toEqual([12, 12])
+    expect(chat.etapaAprovacao).toBe('enviada')
+  })
+})
+
+describe('abrir a conversa de uma simulação (link do painel de aprovação)', () => {
+  let servico: FakeServicoCampanha
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    servico = new FakeServicoCampanha()
+    definirServicoCampanha(servico)
+  })
+
+  it('mostra o pedido, a ficha e o resultado da simulação, só para consulta', async () => {
+    const chat = useChatStore()
+
+    await chat.abrirSimulacao(345)
+
+    expect(chat.chatId).toBe('chat-da-gabriela')
+    expect(chat.regra?.rule_id).toBe('draft-1')
+    expect(chat.mensagens.map((m) => m.papel)).toEqual(['usuario', 'resultado'])
+    expect(chat.etapaAprovacao).toBe('somente_leitura')
+    expect(chat.podeSimular).toBe(false)
+
+    await chat.enviar('mudar')
+    chat.atualizarParametro('pct_acrescimo', 5)
+    expect(servico.conversas).toHaveLength(0)
+    expect(chat.regra?.parametros.find((p) => p.key === 'pct_acrescimo')?.value).toBe(1)
+  })
+
+  it('nova conversa sai do modo consulta', async () => {
+    const chat = useChatStore()
+    await chat.abrirSimulacao(345)
+
+    chat.novaConversa()
+
+    expect(chat.mensagens).toHaveLength(0)
+    expect(chat.etapaAprovacao).toBe('sem_simulacao')
+    expect(chat.chatId).not.toBe('chat-da-gabriela')
+  })
+})

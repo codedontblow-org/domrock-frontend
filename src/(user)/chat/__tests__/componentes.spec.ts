@@ -7,6 +7,8 @@ import SecaoExpansivel from '../components/SecaoExpansivel.vue'
 import SpeechBubble from '../components/SpeechBubble.vue'
 import { regraBlackFriday, resultadoBlackFriday } from './fakes'
 
+const SEM_SIMULACAO = { aprovacao: 'sem_simulacao', ocupado: false } as const
+
 // Intl.NumberFormat separa "R$" do número com espaço não separável (U+00A0).
 function texto(wrapper: { text: () => string }): string {
   return wrapper.text().replace(/\u00a0/g, ' ')
@@ -45,7 +47,7 @@ describe('ParametroCampo', () => {
 describe('ParametrosPanel', () => {
   it('mostra que a campanha está pronta quando nada falta', () => {
     const wrapper = mount(ParametrosPanel, {
-      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false },
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, ...SEM_SIMULACAO },
     })
 
     expect(wrapper.find('.ficha-status').text()).toBe('Pronta para simular')
@@ -54,18 +56,47 @@ describe('ParametrosPanel', () => {
 
   it('bloqueia o botão e diz quantos campos faltam', () => {
     const wrapper = mount(ParametrosPanel, {
-      props: { regra: regraBlackFriday(), camposVazios: ['meta_vendas', 'orcamento_limite'], podeSimular: false, simulando: false },
+      props: { regra: regraBlackFriday(), camposVazios: ['meta_vendas', 'orcamento_limite'], podeSimular: false, simulando: false, ...SEM_SIMULACAO },
     })
 
     expect(wrapper.find('.ficha-status').text()).toBe('2 pendentes')
     expect(wrapper.find('.ficha-simular').attributes('disabled')).toBeDefined()
+  })
+
+  it('só oferece enviar para aprovação depois de simular', () => {
+    const wrapper = mount(ParametrosPanel, {
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, ...SEM_SIMULACAO },
+    })
+
+    expect(wrapper.find('.ficha-enviar').exists()).toBe(false)
+  })
+
+  it('envia o nome digitado e exige um nome', async () => {
+    const wrapper = mount(ParametrosPanel, {
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, aprovacao: 'pronta', ocupado: false },
+    })
+    expect(wrapper.find('.ficha-enviar').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('.ficha-nome').setValue('Natal 2025')
+    await wrapper.find('.ficha-aprovacao').trigger('submit')
+
+    expect(wrapper.emitted('enviarAprovacao')?.[0]).toEqual(['Natal 2025'])
+  })
+
+  it('avisa que precisa simular de novo quando a campanha mudou', () => {
+    const wrapper = mount(ParametrosPanel, {
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, aprovacao: 'desatualizada', ocupado: false },
+    })
+
+    expect(wrapper.find('.ficha-enviar').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.ficha-aprovacao').text()).toContain('simule de novo')
   })
 })
 
 describe('Recolher o painel', () => {
   it('pede para recolher com um botão que tem nome acessível', async () => {
     const wrapper = mount(ParametrosPanel, {
-      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false },
+      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, ...SEM_SIMULACAO },
     })
 
     await wrapper.find('button[aria-label="Recolher o painel"]').trigger('click')

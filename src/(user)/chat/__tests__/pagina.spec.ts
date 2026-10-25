@@ -7,6 +7,8 @@ import { regraBlackFriday } from './fakes'
 
 // auth.ts importa o router (e com ele as telas); a página só precisa do nome de quem entrou.
 vi.mock('@/services/auth', () => ({ usuarioLogado: () => ({ nome: 'Gabriela' }) }))
+// Sem ?simulacao: a página abre na conversa que a store já tem.
+vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 
 describe('página do chat', () => {
   it('mostra a etapa do job que o backend informa enquanto simula (A6-66)', () => {

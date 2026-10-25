@@ -3,12 +3,12 @@ export interface ListaCampanha {
   titulo: string
   inicio: string
   fim: string
-  percentual: string
-  retorno: string
-  investimento: string
+  percentual: string | null
+  alcance: string | null
+  custo: string
+  custoDetalhe: string | null
   sugeridoPor: string
   submetidoEm: string
-  cargosEProdutos: string
   status?: string
 }
 
@@ -35,9 +35,9 @@ defineProps<ListaCampanha>()
           <div class="metric-content">
             <p>
               Acréscimo de
-              <strong>{{ percentual }}</strong>
+              <strong>{{ percentual ?? '…' }}</strong>
             </p>
-            <small>{{ cargosEProdutos }}</small>
+            <small>{{ alcance ?? 'Carregando detalhes…' }}</small>
           </div>
         </div>
 
@@ -46,10 +46,10 @@ defineProps<ListaCampanha>()
 
           <div class="metric-content">
             <p>
-              Retorna
-              <strong>{{ retorno }}</strong>
+              Custa
+              <strong>{{ custo }}</strong>
             </p>
-            <small>Investindo {{ investimento }}.</small>
+            <small>{{ custoDetalhe ?? 'Custo extra de comissão.' }}</small>
           </div>
         </div>
       </div>

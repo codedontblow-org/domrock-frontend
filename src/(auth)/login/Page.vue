@@ -1,4 +1,4 @@
-<script setup lang="ts" lang="ts">
+<script setup lang="ts">
     import Particles from './components/Particles.vue'
     import { ref, computed, nextTick } from 'vue'
     import { isAxiosError } from 'axios'
@@ -32,16 +32,13 @@
             }
         }
         catch (error) {
-            if(error.response?.status === 401) {
+            if (isAxiosError(error) && error.response?.status === 401) {
                 await nextTick()
                 dispararErro('Email ou senha inválidos! Tente novamente.')
-            }
-            else
-            if (isAxiosError(error) && status === 400) {
+            } else if (isAxiosError(error) && error.response?.status === 400) {
                 await nextTick()
                 dispararErro('Algo parece errado com os dados informados!')
-            }
-            else {
+            } else {
                 await nextTick()
                 dispararErro('Não foi possível se conectar ao servidor nesse momento! Você pode tentar novamente mais tarde.')
                 console.error('Erro não identificado durante o login:', error)
@@ -68,7 +65,7 @@
     const particleProfiles = ["ring", "grid"]
     const profile = particleProfiles[Math.floor(Math.random() * particleProfiles.length)]
 
-    const dispararErro = async (mensagem: string: string) => {
+    const dispararErro = async (mensagem: string) => {
         await nextTick()
         erro.value = mensagem        
     }

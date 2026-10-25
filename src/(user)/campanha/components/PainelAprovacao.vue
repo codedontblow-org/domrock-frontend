@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { renderizarMarkdown } from '../../chat/formatacao'
+import { montarJustificativa } from '../montagem'
 import type { CampanhaAprovacao, Interferencia } from '../types'
 
 const props = defineProps<{
   campanha: CampanhaAprovacao | null
+  decidindo?: boolean
+  erro?: string | null
 }>()
 
 const emit = defineEmits<{
   fechar: []
   aprovar: [campanha: CampanhaAprovacao]
-  arquivar: [campanha: CampanhaAprovacao]
-  devolver: [campanha: CampanhaAprovacao, comentario: string, interferencias: Interferencia[]]
+  devolver: [campanha: CampanhaAprovacao, justificativa: string]
 }>()
 
 const expandido = ref(false)
@@ -18,21 +21,12 @@ const comentario = ref('')
 const mencionadas = ref<Interferencia[]>([])
 const botaoFechar = ref<HTMLButtonElement | null>(null)
 
-const podeDevolver = computed(() => comentario.value.trim().length > 0)
+const podeDevolver = computed(() => comentario.value.trim().length > 0 && !props.decidindo)
+const podeAprovar = computed(() =>
+  props.campanha?.detalhe === 'pronto' && !props.decidindo && comentario.value.trim().length === 0,
+)
 
-function paraData(texto: string): Date | null {
-  const [dia, mes, ano] = texto.split('/').map(Number)
-  if (!dia || !mes) return null
-  return new Date(ano || new Date().getFullYear(), mes - 1, dia)
-}
-
-const duracaoEmDias = computed(() => {
-  if (!props.campanha) return null
-  const inicio = paraData(props.campanha.inicio)
-  const fim = paraData(props.campanha.fim)
-  if (!inicio || !fim) return null
-  return Math.round((fim.getTime() - inicio.getTime()) / 86_400_000) + 1
-})
+const descricaoHtml = computed(() => (props.campanha?.descricao ? renderizarMarkdown(props.campanha.descricao) : ''))
 
 function estaMencionada(interferencia: Interferencia): boolean {
   return mencionadas.value.some((item) => item.id === interferencia.id)
@@ -46,11 +40,11 @@ function alternarMencao(interferencia: Interferencia): void {
 
 function devolver(): void {
   if (!props.campanha || !podeDevolver.value) return
-  emit('devolver', props.campanha, comentario.value.trim(), mencionadas.value)
+  emit('devolver', props.campanha, montarJustificativa(comentario.value, mencionadas.value))
 }
 
 function aoPressionarTecla(evento: KeyboardEvent): void {
-  if (evento.key === 'Escape') emit('fechar')
+  if (evento.key === 'Escape' && !props.decidindo) emit('fechar')
 }
 
 watch(
@@ -122,41 +116,57 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
 
             <p class="resumo-periodo">
               De {{ campanha.inicio }} até {{ campanha.fim }}
-              <span v-if="duracaoEmDias" class="metadado">
-                · {{ duracaoEmDias }} {{ duracaoEmDias === 1 ? 'Dia' : 'Dias' }} de duração.
+              <span v-if="campanha.duracaoDias" class="metadado">
+                · {{ campanha.duracaoDias }} {{ campanha.duracaoDias === 1 ? 'Dia' : 'Dias' }} de duração.
               </span>
             </p>
 
-            <p v-if="campanha.descricao" class="resumo-descricao">{{ campanha.descricao }}</p>
+            <!-- eslint-disable-next-line vue/no-v-html -- sanitizado em renderizarMarkdown -->
+            <div v-if="descricaoHtml" class="resumo-descricao" v-html="descricaoHtml"></div>
 
             <RouterLink
+              v-if="campanha.simulacaoId"
               class="link-chat"
-              :to="{ name: 'chat', query: campanha.chatId ? { chat: campanha.chatId } : undefined }"
+              :to="{ name: 'chat', query: { simulacao: campanha.simulacaoId } }"
             >
               <i class="bi bi-chat-left-text-fill"></i>
               Link para o chat
             </RouterLink>
           </section>
 
-          <section v-if="campanha.acrescimos" class="bloco">
+          <p v-if="campanha.detalhe === 'carregando'" class="bloco bloco-ajuda">
+            Carregando a simulação desta versão…
+          </p>
+          <p v-else-if="campanha.detalhe === 'indisponivel'" class="bloco bloco-ajuda" role="alert">
+            Não foi possível carregar a simulação desta versão. Recarregue a página para tentar de novo.
+          </p>
+
+          <section v-if="campanha.acrescimos?.length" class="bloco">
             <h4>Acréscimo</h4>
 
             <dl class="acrescimos">
-              <div>
-                <dt>Base</dt>
-                <dd>{{ campanha.acrescimos.base }}</dd>
+              <div
+                v-for="item in campanha.acrescimos"
+                :key="item.rotulo"
+                :class="{ 'acrescimos-total': item.destaque }"
+              >
+                <dt>{{ item.rotulo }}</dt>
+                <dd>{{ item.valor }}</dd>
               </div>
-              <div>
-                <dt>Vigente</dt>
-                <dd>{{ campanha.acrescimos.vigente }}</dd>
-              </div>
-              <div>
-                <dt>Acréscimo</dt>
-                <dd>{{ campanha.acrescimos.acrescimo }}</dd>
-              </div>
-              <div class="acrescimos-total">
-                <dt>Total</dt>
-                <dd>{{ campanha.acrescimos.total }}</dd>
+            </dl>
+          </section>
+
+          <section v-if="campanha.impacto?.length" class="bloco">
+            <h4>Impacto</h4>
+
+            <dl class="acrescimos">
+              <div
+                v-for="item in campanha.impacto"
+                :key="item.rotulo"
+                :class="{ 'acrescimos-total': item.destaque }"
+              >
+                <dt>{{ item.rotulo }}</dt>
+                <dd>{{ item.valor }}</dd>
               </div>
             </dl>
           </section>
@@ -203,14 +213,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
 
           <section class="bloco">
             <h4><label for="painel-aprovacao-comentario">Devolver campanha</label></h4>
-            <p class="bloco-ajuda">Devolva a campanha caso algo precise mudar antes dela ser aprovada</p>
+            <p class="bloco-ajuda">
+             Devolva a campanha caso algo precise mudar antes dela ser aprovada.
+            </p>
 
             <div class="comentario">
               <textarea
                 id="painel-aprovacao-comentario"
                 v-model="comentario"
-                placeholder="Comentário"
+                placeholder="O que precisa mudar?"
                 rows="3"
+                :disabled="decidindo"
               ></textarea>
 
               <button
@@ -243,12 +256,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
           </section>
         </div>
 
+        <p v-if="erro" class="painel-erro" role="alert">{{ erro }}</p>
+
+        <!-- Arquivar é do autor (só em RASCUNHO/REPROVADA): o Supervisor aprova ou devolve. -->
         <footer class="painel-acoes">
-          <button type="button" class="acao acao--arquivar" @click="emit('arquivar', campanha)">
-            Arquivar campanha
+          <button type="button" class="acao acao--devolver" :disabled="!podeDevolver" @click="devolver">
+            Devolver campanha
           </button>
-          <button type="button" class="acao acao--aprovar" @click="emit('aprovar', campanha)">
-            Aprovar campanha
+          <button type="button" class="acao acao--aprovar" :disabled="!podeAprovar" @click="emit('aprovar', campanha)">
+            {{ decidindo ? 'Enviando…' : 'Aprovar campanha' }}
           </button>
         </footer>
       </aside>
@@ -367,6 +383,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
   font-style: italic;
 }
 
+.resumo-descricao :deep(p) {
+  margin: 0 0 6px;
+}
+
+.painel-erro {
+  margin: 0;
+  padding: 10px 20px 0;
+  color: var(--color-red);
+  font-size: var(--text-label);
+  line-height: 1.5;
+}
+
 .link-chat {
   display: flex;
   align-items: center;
@@ -409,7 +437,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
 
 .acrescimos {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   margin: 0;
 }
 
@@ -568,12 +597,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
   transition: filter 0.2s ease;
 }
 
-.acao:hover,
+.acao:not(:disabled):hover,
 .acao:focus-visible {
   filter: brightness(1.15);
 }
 
-.acao--arquivar {
+.acao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.acao--devolver {
   border: 1px solid var(--color-red);
   background: none;
   color: var(--color-red);

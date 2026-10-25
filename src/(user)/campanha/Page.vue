@@ -1,205 +1,112 @@
 
 <script setup lang="ts">
-import TabelaCampanhas from './components/TabelaCampanhas.vue'
+import TabelaCampanhas, { type Tabela } from './components/TabelaCampanhas.vue'
 import AvisoCampanha from './components/AvisoCampanha.vue'
 import CarrosselCampanha from './components/CarrosselCampanha.vue'
 import PainelAprovacao from './components/PainelAprovacao.vue'
-import { computed, ref } from 'vue'
-import type { CampanhaAprovacao, Interferencia } from './types'
+import { computed, onMounted, ref } from 'vue'
+import { api } from '@/services/api'
+import { descreverFalha } from '../chat/services/campanha'
+import { criarServicoCampanhas } from './services/campanhas'
+import { cartaoDaFila, cartaoDeMinhas, comVersao, linhaAprovada } from './montagem'
+import type { CampanhaAprovacao, PedidoDecisao } from './types'
 
+const servico = criarServicoCampanhas(api)
 const ehSupervisor = localStorage.getItem('perfil') === 'SUPERVISOR'
+const nomeLogado = JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nome ?? 'Você'
 
-const campanhasAprovacao = ref<CampanhaAprovacao[]>([
-  {
-    id: 1,
-    titulo: 'Acréscimo para o cargo Vendedor loja no final do mês',
-    inicio: '23/11',
-    fim: '30/11',
-    percentual: '+1%',
-    retorno: 'R$2.000,00',
-    investimento: 'R$1.500,00',
-    cargosEProdutos: 'Afeta 1 cargo e 1 produto.',
-    sugeridoPor: 'Roberval Silva',
-    submetidoEm: '16/11',
-    status: 'Sem conflitos',
-    descricao:
-      'Todas as vendas realizadas pelos funcionários com o cargo Vendedor loja entre os dias 23/11 e 30/11 terão um acréscimo de 1%, totalizando 1,5% de comissionamento para esse cargo durante esse período.',
-    acrescimos: { base: '1.00%', vigente: '+0.25%', acrescimo: '+1.50%', total: '+1.75%' },
-    marcas: ['Preto', 'Cinza'],
-    cargos: ['Vendedor loja'],
-    interferencias: [
-      { id: 1, tipo: 'Intercorrência', descricao: 'Faltas abonadas para Vendedores loja na semana' },
-      { id: 2, tipo: 'Campanha', descricao: 'Acréscimo de +0,25% para Vendedores loja' },
-      { id: 3, tipo: 'Intercorrência', descricao: 'Sem estoque de produtos da marca Cinza' },
-    ],
-  },
-  {
-    id: 2,
-    titulo: 'Campanha especial de novembro',
-    inicio: '20/11',
-    fim: '30/11',
-    percentual: '+2%',
-    retorno: 'R$3.500,00',
-    investimento: 'R$2.000,00',
-    cargosEProdutos: 'Afeta 2 cargos e 1 produto.',
-    sugeridoPor: 'Mariana Costa',
-    submetidoEm: '17/11',
-    status: 'Sem conflitos',
-  },
-  {
-    id: 3,
-    titulo: 'Incentivo de vendas de Natal',
-    inicio: '01/12',
-    fim: '25/12',
-    percentual: '+3%',
-    retorno: 'R$4.000,00',
-    investimento: 'R$2.500,00',
-    cargosEProdutos: 'Afeta 1 cargo e 2 produtos.',
-    sugeridoPor: 'Carlos Mendes',
-    submetidoEm: '18/11',
-    status: 'Sem conflitos',
-  },
-  {
-    id: 4,
-    titulo: 'Bônus de desempenho comercial',
-    inicio: '01/12',
-    fim: '15/12',
-    percentual: '+1,5%',
-    retorno: 'R$2.800,00',
-    investimento: 'R$1.800,00',
-    cargosEProdutos: 'Afeta 3 cargos e 1 produto.',
-    sugeridoPor: 'Ana Oliveira',
-    submetidoEm: '19/11',
-    status: 'Sem conflitos',
-  },
-  {
-    id: 5,
-    titulo: 'Campanha de fidelização de clientes',
-    inicio: '05/12',
-    fim: '20/12',
-    percentual: '+2,5%',
-    retorno: 'R$5.000,00',
-    investimento: 'R$3.000,00',
-    cargosEProdutos: 'Afeta 2 cargos e 3 produtos.',
-    sugeridoPor: 'Roberval Silva',
-    submetidoEm: '20/11',
-    status: 'Sem conflitos',
-  },
-])
+const campanhasAprovacao = ref<CampanhaAprovacao[]>([])
+const carregandoFila = ref(true)
+const erroFila = ref<string | null>(null)
 
-const idSelecionado = ref<CampanhaAprovacao['id'] | null>(null)
+function substituir(id: number, mudar: (campanha: CampanhaAprovacao) => CampanhaAprovacao) {
+  campanhasAprovacao.value = campanhasAprovacao.value.map((campanha) => (campanha.id === id ? mudar(campanha) : campanha))
+}
+
+async function carregarFila() {
+  carregandoFila.value = true
+  erroFila.value = null
+  try {
+    campanhasAprovacao.value = ehSupervisor
+      ? (await servico.fila()).map(cartaoDaFila)
+      : (await servico.minhas('AGUARDANDO_APROVACAO')).map((item) => cartaoDeMinhas(item, nomeLogado))
+  } catch (erro) {
+    erroFila.value = descreverFalha(erro)
+    return
+  } finally {
+    carregandoFila.value = false
+  }
+
+  await Promise.allSettled(campanhasAprovacao.value.map(async (cartao) => {
+    if (cartao.versao === null) return
+    try {
+      const versao = await servico.versao(cartao.id, cartao.versao)
+      substituir(cartao.id, (atual) => comVersao(atual, versao))
+    } catch {
+      substituir(cartao.id, (atual) => ({ ...atual, detalhe: 'indisponivel' }))
+    }
+  }))
+}
+
+onMounted(carregarFila)
+
+const idSelecionado = ref<number | null>(null)
 const campanhaSelecionada = computed(
   () => campanhasAprovacao.value.find((campanha) => campanha.id === idSelecionado.value) ?? null,
 )
+const decidindo = ref(false)
+const erroDecisao = ref<string | null>(null)
 
 function abrirCampanha(campanha: CampanhaAprovacao) {
   idSelecionado.value = campanha.id
+  erroDecisao.value = null
 }
 
 function fecharCampanha() {
   idSelecionado.value = null
+  erroDecisao.value = null
 }
 
-function concluirDecisao(campanha: CampanhaAprovacao) {
-  campanhasAprovacao.value = campanhasAprovacao.value.filter((item) => item.id !== campanha.id)
-  fecharCampanha()
+async function decidir(campanha: CampanhaAprovacao, decisao: PedidoDecisao['decisao'], justificativa: string | null) {
+  // Sem versão carregada não há o que decidir: o painel já deixa os botões inativos.
+  if (campanha.versao === null) return
+  decidindo.value = true
+  erroDecisao.value = null
+  try {
+    await servico.decidir(campanha.id, { versao: campanha.versao, decisao, justificativa })
+    campanhasAprovacao.value = campanhasAprovacao.value.filter((item) => item.id !== campanha.id)
+    fecharCampanha()
+    // A aprovada passa a aparecer em Campanhas Passadas sem recarregar a página.
+    if (decisao === 'APROVAR') carregarPassadas()
+  } catch (erro) {
+    erroDecisao.value = descreverFalha(erro)
+  } finally {
+    decidindo.value = false
+  }
 }
 
-function devolverCampanha(campanha: CampanhaAprovacao, comentario: string, interferencias: Interferencia[]) {
-  console.info('Devolver campanha', campanha.id, { comentario, interferencias })
-  concluirDecisao(campanha)
+const aprovarCampanha = (campanha: CampanhaAprovacao) => decidir(campanha, 'APROVAR', null)
+const devolverCampanha = (campanha: CampanhaAprovacao, justificativa: string) =>
+  decidir(campanha, 'REPROVAR', justificativa)
+
+// Campanhas Passadas: as aprovadas, de todos os autores (GET /api/campanhas/aprovadas).
+const campanhasPassadas = ref<Tabela[]>([])
+const carregandoPassadas = ref(true)
+const erroPassadas = ref<string | null>(null)
+
+async function carregarPassadas() {
+  carregandoPassadas.value = true
+  erroPassadas.value = null
+  try {
+    campanhasPassadas.value = (await servico.aprovadas()).map(linhaAprovada)
+  } catch (erro) {
+    erroPassadas.value = descreverFalha(erro)
+  } finally {
+    carregandoPassadas.value = false
+  }
 }
 
-const campanhas = [
-  {
-    id: 1,
-    titulo: 'Campanha de Verão',
-    inicio: '01/11/2026',
-    fim: '30/11/2026',
-    cargo: 'Gerente de Vendas',
-    marca: 'Nike',
-    percentual: '15%',
-  },
-  {
-    id: 2,
-    titulo: 'Promoção de Natal',
-    inicio: '01/12/2026',
-    fim: '25/12/2026',
-    cargo: 'Supervisor de Vendas',
-    marca: 'Adidas',
-    percentual: '20%',
-  },
-  {
-    id: 3,
-    titulo: 'Campanha Especial',
-    inicio: '10/12/2026',
-    fim: '20/12/2026',
-    percentual: '10%',
-  },
-  {
-    id: 4,
-    titulo: 'Black Friday',
-    inicio: '20/11/2026',
-    fim: '30/11/2026',
-    cargo: 'Gerente de Vendas',
-    marca: 'Puma',
-    percentual: '25%',
-  },
-  {
-    id: 5,
-    titulo: 'Liquidação de Inverno',
-    inicio: '01/07/2026',
-    fim: '31/07/2026',
-    cargo: 'Vendedor de Loja',
-    marca: 'Nike',
-    percentual: '12%',
-  },
-  {
-    id: 6,
-    titulo: 'Semana do Consumidor',
-    inicio: '10/03/2026',
-    fim: '17/03/2026',
-    cargo: 'Supervisor de Vendas',
-    marca: 'Samsung',
-    percentual: '18%',
-  },
-  {
-    id: 7,
-    titulo: 'Aniversário da Loja',
-    inicio: '05/08/2026',
-    fim: '15/08/2026',
-    cargo: 'Vendedor de Loja',
-    marca: 'Adidas',
-    percentual: '8%',
-  },
-  {
-    id: 8,
-    titulo: 'Volta às Aulas',
-    inicio: '15/01/2026',
-    fim: '15/02/2026',
-    cargo: 'Gerente de Vendas',
-    marca: 'Faber-Castell',
-    percentual: '10%',
-  },
-  {
-    id: 9,
-    titulo: 'Dia das Mães',
-    inicio: '01/05/2026',
-    fim: '10/05/2026',
-    cargo: 'Supervisor de Vendas',
-    marca: 'Natura',
-    percentual: '15%',
-  },
-  {
-    id: 10,
-    titulo: 'Dia dos Namorados',
-    inicio: '01/06/2026',
-    fim: '12/06/2026',
-    cargo: 'Vendedor de Loja',
-    marca: 'O Boticário',
-    percentual: '13%',
-  },
-]
+onMounted(carregarPassadas)
 </script>
 
 <template>
@@ -220,14 +127,26 @@ const campanhas = [
 
         <p v-if="ehSupervisor" class="section-description">
           Você está visualizando como um Supervisor! Clique em uma campanha para ver mais detalhes,
-          aprovar, arquivar ou devolver.
+          aprovar ou devolver.
         </p>
         <p v-else class="section-description">
           Sugestões de campanhas que estão aguardando aprovação de um supervisor.
         </p>
       </header>
 
+      <p v-if="carregandoFila" class="estado-fila">Carregando campanhas…</p>
+
+      <div v-else-if="erroFila" class="estado-fila estado-fila--erro" role="alert">
+        <span>{{ erroFila }}</span>
+        <button type="button" class="estado-fila-acao" @click="carregarFila">Tentar de novo</button>
+      </div>
+
+      <p v-else-if="campanhasAprovacao.length === 0" class="estado-fila">
+        Nenhuma campanha aguardando aprovação.
+      </p>
+
       <CarrosselCampanha
+        v-else
         :campanhas="campanhasAprovacao"
         :selecionavel="ehSupervisor"
         @selecionar="abrirCampanha"
@@ -244,15 +163,25 @@ const campanhas = [
         </p>
       </header>
 
-      <TabelaCampanhas :campanhas="campanhas" />
+      <p v-if="carregandoPassadas" class="estado-fila">Carregando campanhas…</p>
+
+      <div v-else-if="erroPassadas" class="estado-fila estado-fila--erro" role="alert">
+        <span>{{ erroPassadas }}</span>
+        <button type="button" class="estado-fila-acao" @click="carregarPassadas">Tentar de novo</button>
+      </div>
+
+      <p v-else-if="campanhasPassadas.length === 0" class="estado-fila">Nenhuma campanha aprovada ainda.</p>
+
+      <TabelaCampanhas v-else :campanhas="campanhasPassadas" />
     </section>
 
     <PainelAprovacao
       v-if="ehSupervisor"
       :campanha="campanhaSelecionada"
+      :decidindo="decidindo"
+      :erro="erroDecisao"
       @fechar="fecharCampanha"
-      @aprovar="concluirDecisao"
-      @arquivar="concluirDecisao"
+      @aprovar="aprovarCampanha"
       @devolver="devolverCampanha"
     />
   </main>
@@ -307,6 +236,36 @@ const campanhas = [
   font-size: var(--text-header-2);
   line-height: var(--text-header-2--line-height);
   font-weight: 800;
+}
+
+.estado-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 24px 0;
+  color: var(--color-gray-txt2-dark);
+  font-size: var(--text-body);
+}
+
+.estado-fila--erro {
+  color: var(--color-red);
+}
+
+.estado-fila-acao {
+  padding: 6px 12px;
+  border: 1px solid var(--color-gray-txt3-dark);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-white-txt1);
+  font-family: var(--font-raleway);
+  font-size: var(--text-label);
+  cursor: pointer;
+}
+
+.estado-fila-acao:hover,
+.estado-fila-acao:focus-visible {
+  border-color: var(--color-blue);
 }
 
 .section-description {
