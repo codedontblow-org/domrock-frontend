@@ -1,6 +1,7 @@
 import { formatarMoeda, formatarPercentual } from '../chat/formatacao'
 import { NOMES_CARGO, NOMES_MARCA } from '../chat/rotulos'
 import type { Periodo, RegraCampanha } from '../chat/types'
+import type { ListaCampanha } from './components/ListaCampanha.vue'
 import type { Tabela } from './components/TabelaCampanhas.vue'
 import type {
   CampanhaAprovacao, CampanhaAprovada, CampanhaResumo, FilaCampanha, Interferencia, ItemDetalhe, PeriodoCampanha,
@@ -156,6 +157,26 @@ export function linhaAprovada(item: CampanhaAprovada): Tabela {
     cargo: item.cargos.map((codigo) => NOMES_CARGO[codigo] ?? codigo).join(', ') || undefined,
     marca: todasAsMarcas ? 'Todas' : item.marcas.map((codigo) => NOMES_MARCA[codigo] ?? codigo).join(', ') || undefined,
     percentual: item.pct_acrescimo === null ? '—' : `+${formatarPercentual(item.pct_acrescimo)}`,
+  }
+}
+
+export interface DetalheAprovada extends ListaCampanha {
+  simulacaoId: number
+}
+
+export function detalheAprovada(item: CampanhaAprovada): DetalheAprovada {
+  return {
+    titulo: item.nome,
+    inicio: diaMesDeData(item.periodo.data_inicio),
+    fim: diaMesDeData(item.periodo.data_fim),
+    percentual: item.pct_acrescimo === null ? null : `+${formatarPercentual(item.pct_acrescimo)}`,
+    alcance: descreverAlcance(item.cargos, item.marcas.length === QUANTIDADE_DE_MARCAS ? [TODAS_AS_MARCAS] : item.marcas),
+    custo: formatarMoeda(item.custo_adicional),
+    custoDetalhe: null,
+    sugeridoPor: item.autor.nome ?? 'Autor desconhecido',
+    submetidoEm: diaMesDeInstante(item.submetida_em),
+    status: 'Aprovada',
+    simulacaoId: item.simulacao_id,
   }
 }
 

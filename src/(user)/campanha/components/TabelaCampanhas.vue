@@ -15,6 +15,10 @@ const props = defineProps<{
   campanhas: Tabela[]
 }>()
 
+const emit = defineEmits<{
+  selecionar: [campanha: Tabela]
+}>()
+
 const ordenarPor = ref('inicio')
 const ordem = ref('crescente')
 
@@ -211,6 +215,11 @@ function proximaPagina() {
           <tr
             v-for="(item, index) in campanhasPaginadas"
             :key="item.id ?? `${paginaAtual}-${index}`"
+            class="linha-clicavel"
+            tabindex="0"
+            :aria-label="`Ver detalhes de ${item.titulo}`"
+            @click="emit('selecionar', item)"
+            @keydown.enter="emit('selecionar', item)"
           >
             <td class="col-titulo" :title="item.titulo">
               {{ item.titulo }}
@@ -399,6 +408,15 @@ function proximaPagina() {
 
 .campaign-table tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.03);
+}
+
+.linha-clicavel {
+  cursor: pointer;
+}
+
+.linha-clicavel:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: -2px;
 }
 
 .campaign-table td {

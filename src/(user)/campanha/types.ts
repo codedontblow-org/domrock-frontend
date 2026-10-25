@@ -82,6 +82,8 @@ export interface CampanhaAprovada {
   marcas: string[]
   cargos: string[]
   custo_adicional: number
+  submetida_em: string
+  simulacao_id: number
 }
 
 /** Corpo de POST /api/campanhas/{id}/decidir (contrato 5.8): `versao` é a que o Supervisor viu. */
@@ -104,10 +106,6 @@ export interface Interferencia {
   descricao: string
 }
 
-/**
- * Um card de "Aguardando Aprovação". Nasce da fila (ou de "minhas") e é completado com a
- * versão congelada: até lá, `detalhe` é 'carregando' e os campos que dependem da regra são null.
- */
 export interface CampanhaAprovacao {
   id: number
   versao: number | null

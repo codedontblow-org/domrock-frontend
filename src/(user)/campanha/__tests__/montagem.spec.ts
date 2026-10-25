@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { regraBlackFriday, resultadoBlackFriday } from '../../chat/__tests__/fakes'
 import {
-  cartaoDaFila, comVersao, descreverAlcance, diaMesDeData, duracaoEmDias, linhaAprovada, montarJustificativa,
+  cartaoDaFila, comVersao, descreverAlcance, diaMesDeData, duracaoEmDias, detalheAprovada, linhaAprovada,
+  montarJustificativa,
   usoDoOrcamento,
 } from '../montagem'
 import type { CampanhaAprovada, FilaCampanha, VersaoCampanha } from '../types'
@@ -71,6 +72,7 @@ describe('linhaAprovada (Campanhas Passadas)', () => {
     id: 1, nome: 'Natal', versao: 1, autor: { id: 1, nome: 'Gabriela' },
     periodo: { data_inicio: '2025-12-01', data_fim: '2025-12-24' }, vigencia: 'ENCERRADA',
     pct_acrescimo: 1.5, marcas: ['10', '20'], cargos: ['100', '150'], custo_adicional: 30674.22,
+    submetida_em: '2026-10-25T13:21:33Z', simulacao_id: 23,
   }
 
   it('mostra datas completas, nomes de marca e cargo e o acréscimo', () => {
@@ -84,5 +86,22 @@ describe('linhaAprovada (Campanhas Passadas)', () => {
     const linha = linhaAprovada({ ...aprovada, marcas: ['10', '20', '30', '40', '50', '60'] })
 
     expect(linha.marca).toBe('Todas')
+  })
+})
+
+describe('detalheAprovada (modal de Campanhas Passadas)', () => {
+  it('monta o cartão da campanha e guarda a simulação do chat', () => {
+    const detalhe = detalheAprovada({
+      id: 1, nome: 'Natal', versao: 1, autor: { id: 1, nome: 'Gabriela' },
+      periodo: { data_inicio: '2025-12-01', data_fim: '2025-12-24' }, vigencia: 'ENCERRADA',
+      pct_acrescimo: 1.5, marcas: ['10', '20', '30', '40', '50', '60'], cargos: ['100', '150'],
+      custo_adicional: 30674.22, submetida_em: '2026-10-25T13:21:33Z', simulacao_id: 23,
+    })
+
+    expect(detalhe).toMatchObject({
+      titulo: 'Natal', inicio: '01/12', fim: '24/12', percentual: '+1,5%',
+      alcance: 'Afeta 2 cargos e todas as marcas.', sugeridoPor: 'Gabriela', status: 'Aprovada', simulacaoId: 23,
+    })
+    expect(detalhe.custo.replace(/\u00a0/g, ' ')).toBe('R$ 30.674,22')
   })
 })

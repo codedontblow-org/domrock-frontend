@@ -4,12 +4,15 @@ import TabelaCampanhas, { type Tabela } from './components/TabelaCampanhas.vue'
 import AvisoCampanha from './components/AvisoCampanha.vue'
 import CarrosselCampanha from './components/CarrosselCampanha.vue'
 import PainelAprovacao from './components/PainelAprovacao.vue'
+import ModalCampanhaPassada from './components/ModalCampanhaPassada.vue'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '@/services/api'
 import { descreverFalha } from '../chat/services/campanha'
 import { criarServicoCampanhas } from './services/campanhas'
-import { cartaoDaFila, cartaoDeMinhas, comVersao, linhaAprovada } from './montagem'
-import type { CampanhaAprovacao, PedidoDecisao } from './types'
+import {
+  cartaoDaFila, cartaoDeMinhas, comVersao, detalheAprovada, linhaAprovada, type DetalheAprovada,
+} from './montagem'
+import type { CampanhaAprovacao, CampanhaAprovada, PedidoDecisao } from './types'
 
 const servico = criarServicoCampanhas(api)
 const ehSupervisor = localStorage.getItem('perfil') === 'SUPERVISOR'
@@ -89,16 +92,22 @@ const aprovarCampanha = (campanha: CampanhaAprovacao) => decidir(campanha, 'APRO
 const devolverCampanha = (campanha: CampanhaAprovacao, justificativa: string) =>
   decidir(campanha, 'REPROVAR', justificativa)
 
-// Campanhas Passadas: as aprovadas, de todos os autores (GET /api/campanhas/aprovadas).
-const campanhasPassadas = ref<Tabela[]>([])
+const aprovadas = ref<CampanhaAprovada[]>([])
+const campanhasPassadas = computed(() => aprovadas.value.map(linhaAprovada))
 const carregandoPassadas = ref(true)
 const erroPassadas = ref<string | null>(null)
+const passadaSelecionada = ref<DetalheAprovada | null>(null)
+
+function abrirPassada(linha: Tabela) {
+  const aprovada = aprovadas.value.find((item) => item.id === linha.id)
+  passadaSelecionada.value = aprovada ? detalheAprovada(aprovada) : null
+}
 
 async function carregarPassadas() {
   carregandoPassadas.value = true
   erroPassadas.value = null
   try {
-    campanhasPassadas.value = (await servico.aprovadas()).map(linhaAprovada)
+    aprovadas.value = await servico.aprovadas()
   } catch (erro) {
     erroPassadas.value = descreverFalha(erro)
   } finally {
@@ -172,8 +181,10 @@ onMounted(carregarPassadas)
 
       <p v-else-if="campanhasPassadas.length === 0" class="estado-fila">Nenhuma campanha aprovada ainda.</p>
 
-      <TabelaCampanhas v-else :campanhas="campanhasPassadas" />
+      <TabelaCampanhas v-else :campanhas="campanhasPassadas" @selecionar="abrirPassada" />
     </section>
+
+    <ModalCampanhaPassada :campanha="passadaSelecionada" @fechar="passadaSelecionada = null" />
 
     <PainelAprovacao
       v-if="ehSupervisor"
