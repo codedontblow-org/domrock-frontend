@@ -25,9 +25,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => { return response },
   (error) => {
-    const status = error.response.status
-    const url = error.config.url ?? ''
-      const isLoginRequest = /\/auth\/login(?:\?|$)/.test(url)
+    // Sem resposta (backend fora do ar, timeout) não há status: o erro original do axios segue
+    // adiante, para a tela dizer "Sem resposta do servidor" em vez de cair num TypeError.
+    const status = error.response?.status
+    const url = error.config?.url ?? ''
+    const isLoginRequest = /\/auth\/login(?:\?|$)/.test(url)
     if (status === 401 && !isLoginRequest) {
       encerrarSessao()
     }

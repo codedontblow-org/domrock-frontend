@@ -20,7 +20,10 @@
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck -- animação de canvas escrita em JS; tipar quando for mexer nela
+// @ts-nocheck
+// Animacao de canvas escrita em JavaScript (A6-61). O lang="ts" e necessario para o vue-tsc aceitar o
+// import deste componente na tela de login (sem ele o CI falhava com TS7016); o @ts-nocheck evita
+// reescrever a animacao agora. Tipar este arquivo e remover o @ts-nocheck fica como divida tecnica.
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 function resolveColor(value) {

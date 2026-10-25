@@ -12,6 +12,13 @@ export interface LoginResponse {
     }
 }
 
+export type UsuarioLogado = LoginResponse['usuario']
+
+/** Usuário salvo no login, ou null sem sessão. Ex.: usuarioLogado()?.nome -> "Gabriela" */
+export function usuarioLogado(): UsuarioLogado | null {
+    return JSON.parse(localStorage.getItem('usuario') ?? 'null')
+}
+
 export async function login(
     email: string,
     senha: string

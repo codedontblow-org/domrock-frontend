@@ -14,6 +14,12 @@ export function formatarPercentual(valor: number): string {
   return `${PERCENTUAL.format(valor)}%`
 }
 
+/** Saudação da tela inicial pelo primeiro nome. Ex.: saudacao("Ana Lima") -> "Olá, Ana!" */
+export function saudacao(nome: string | null | undefined): string {
+  const primeiroNome = nome?.trim().split(/\s+/)[0]
+  return primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!'
+}
+
 /** Markdown da Lana em HTML sanitizado (a resposta vem de uma LLM: nunca confiar). */
 export function renderizarMarkdown(texto: string): string {
   return DOMPurify.sanitize(marked.parse(texto, { async: false }))

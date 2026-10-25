@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" lang="ts">
     import Particles from './components/Particles.vue'
     import { ref, computed, nextTick } from 'vue'
     import { isAxiosError } from 'axios'
@@ -12,7 +12,7 @@
     const erro = ref('')
     const isLoading = ref(false)
 
-    const submeterLogin = async () => {
+   const submeterLogin = async () => {
         erro.value = ''
         
         if(email.value === '' || senha.value === '') {
@@ -22,16 +22,22 @@
         
         isLoading.value = true
         try {
-            await login(email.value, senha.value)
-            await router.push('/')
+            const dados = await login(email.value, senha.value)
+            
+            // Redirecionamento explícito que resolve o bug do F5
+            if (dados.perfil === 'ADMIN') {
+                await router.push('/admin')
+            } else {
+                await router.push('/')
+            }
         }
         catch (error) {
-            if(isAxiosError(error) && error.response?.status === 401) {
+            if(error.response?.status === 401) {
                 await nextTick()
                 dispararErro('Email ou senha inválidos! Tente novamente.')
             }
             else
-            if (isAxiosError(error) && error.response?.status === 400) {
+            if (isAxiosError(error) && status === 400) {
                 await nextTick()
                 dispararErro('Algo parece errado com os dados informados!')
             }
@@ -62,7 +68,7 @@
     const particleProfiles = ["ring", "grid"]
     const profile = particleProfiles[Math.floor(Math.random() * particleProfiles.length)]
 
-    const dispararErro = async (mensagem: string) => {
+    const dispararErro = async (mensagem: string: string) => {
         await nextTick()
         erro.value = mensagem        
     }

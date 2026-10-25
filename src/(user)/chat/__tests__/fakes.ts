@@ -1,5 +1,8 @@
+import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import type { ServicoCampanha } from '../services/campanha'
-import type { RegraCampanha, RespostaChat, ResultadoSimulacao } from '../types'
+import type {
+  FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento, SimulacaoCriada,
+} from '../types'
 
 export function regraBlackFriday(sobrescrever: Partial<Record<string, unknown>> = {}): RegraCampanha {
   const valores: Record<string, unknown> = {
@@ -69,6 +72,11 @@ export class FakeServicoCampanha implements ServicoCampanha {
   respostaChat: RespostaChat = { chat_id: 'c', response: 'Anotado!', regra: regraBlackFriday() }
   resultado: ResultadoSimulacao = resultadoBlackFriday()
   falha: unknown = null
+  /** Etapas que o "backend" anuncia durante a simulação, na ordem. */
+  etapas: string[] = []
+  /** Com true, a simulação fica rodando até o teste chamar liberarSimulacao(). */
+  segurarSimulacao = false
+  private liberar: (() => void) | null = null
 
   async conversar(chatId: string, mensagem: string, regra: RegraCampanha | null): Promise<RespostaChat> {
     this.conversas.push({ chatId, mensagem, regra: regra ? JSON.parse(JSON.stringify(regra)) : null })
@@ -76,10 +84,76 @@ export class FakeServicoCampanha implements ServicoCampanha {
     return this.respostaChat
   }
 
-  async simular(_chatId: string, regra: RegraCampanha): Promise<ResultadoSimulacao> {
+  async simular(_chatId: string, regra: RegraCampanha, aoMudarEtapa: (etapa: string) => void): Promise<ResultadoSimulacao> {
     // JSON e não structuredClone: a regra chega como Proxy reativo do Vue.
     this.simulacoes.push(JSON.parse(JSON.stringify(regra)) as RegraCampanha)
+    this.etapas.forEach((etapa) => aoMudarEtapa(etapa))
+    if (this.segurarSimulacao) await new Promise<void>((resolve) => { this.liberar = resolve })
     if (this.falha) throw this.falha
     return this.resultado
+  }
+
+  liberarSimulacao(): void {
+    this.liberar?.()
+  }
+}
+
+export const jobCriado: SimulacaoCriada = { id: 345, status: 'PENDENTE', etapa: 'Na fila' }
+
+const camposDoJob = {
+  id: 345, chat_id: 'c1', campanha_id: null, criada_em: '2026-10-21T12:58:40Z', ficha: regraBlackFriday(),
+}
+
+export function jobRodando(): SimulacaoAndamento {
+  return { ...camposDoJob, status: 'RODANDO', etapa: 'Simulando', concluida_em: null, duracao_ms: null, resultado: null, erro: null }
+}
+
+export function jobConcluido(): SimulacaoAndamento {
+  return {
+    ...camposDoJob, status: 'CONCLUIDA', etapa: 'Concluída', concluida_em: '2026-10-21T12:59:40Z', duracao_ms: 60000,
+    resultado: resultadoBlackFriday(), erro: null,
+  }
+}
+
+export function jobComErro(erro: FalhaSimulacao): SimulacaoAndamento {
+  return {
+    ...camposDoJob, status: 'ERRO', etapa: 'Erro', concluida_em: '2026-10-21T12:59:40Z', duracao_ms: null,
+    resultado: null, erro,
+  }
+}
+
+/**
+ * Backend da simulação em memória (contrato 4.1 e 4.2): o POST devolve o job criado e cada GET
+ * devolve o próximo estado de `estados`. Registra os pedidos para o teste conferir rota e corpo.
+ */
+export class FakeBackendSimulacao {
+  pedidos: Array<{ metodo: string; url: string; corpo: unknown }> = []
+  private readonly criado: SimulacaoCriada
+  private readonly estados: SimulacaoAndamento[]
+
+  constructor(criado: SimulacaoCriada, estados: SimulacaoAndamento[]) {
+    this.criado = criado
+    this.estados = [...estados]
+  }
+
+  http(): AxiosInstance {
+    return axios.create({ adapter: (config) => this.responder(config as InternalAxiosRequestConfig) })
+  }
+
+  private async responder(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
+    const corpo: unknown = typeof config.data === 'string' ? JSON.parse(config.data) : config.data
+    this.pedidos.push({ metodo: config.method ?? '', url: config.url ?? '', corpo })
+    const ehPedido = config.method === 'post'
+    const data = ehPedido ? this.criado : this.estados.shift()
+    return { status: ehPedido ? 202 : 200, statusText: '', headers: {}, config, data }
+  }
+}
+
+/** Espera do polling sem relógio: registra os intervalos pedidos e volta na hora. */
+export class FakeEspera {
+  esperas: number[] = []
+
+  readonly esperar = async (ms: number): Promise<void> => {
+    this.esperas.push(ms)
   }
 }
