@@ -20,7 +20,7 @@ function alternarFerramenta(index: number): void {
 
 function obterIcone(ferramenta: string): string {
   if (ferramenta === 'consultar_banco') return 'bi-database-fill'
-  if (ferramenta === 'registrar_parametro_regra') return 'bi-sliders2'
+  if (ferramenta === 'registrar_parametros_regra') return 'bi-sliders2'
   return 'bi-tools'
 }
 

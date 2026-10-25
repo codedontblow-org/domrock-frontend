@@ -37,7 +37,7 @@ watch(() => mensagens.value.length, async () => {
 <template>
   <div
     class="chat-page"
-    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra, 'ficha-recolhida': regra && fichaRecolhida }">
+    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
         <h1>{{ textoSaudacao }}</h1>
@@ -183,8 +183,8 @@ watch(() => mensagens.value.length, async () => {
 
 .com-ficha .conversa {
   width: 100%;
-  flex: 1;
-  min-width: 0;
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 .ficha-lateral {
@@ -200,8 +200,6 @@ watch(() => mensagens.value.length, async () => {
 
 .ficha-lateral--recolhida {
   width: 44px;
-  min-width: 44px;
-  flex-shrink: 0;
 }
 
 /* O conteúdo mantém a largura aberta e é cortado enquanto a ficha encolhe, sem reflow. */
@@ -212,9 +210,6 @@ watch(() => mensagens.value.length, async () => {
 
 .ficha-lateral--recolhida .ficha-conteudo {
   opacity: 0;
-  pointer-events: none;
-  height: 0;
-  overflow: hidden;
 }
 
 .ficha-trilho {
