@@ -90,7 +90,7 @@ export interface FalhaSimulacao {
   erros?: string[]
 }
 
-export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro'
+export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro' | 'sistema'
 
 export interface MensagemChat {
   id: number

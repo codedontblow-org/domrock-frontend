@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
+import { onBeforeUnmount, onMounted, ref, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
 import { encerrarSessao } from '@/services/auth'
+
+const router = useRouter()
+const route = useRoute()
 
 // Abaixo desta largura a barra começa recolhida e, aberta, fica por cima do conteúdo.
 const CONSULTA_CELULAR = '(max-width: 900px)'
@@ -73,7 +77,30 @@ const activeItem = ref<string>('nova-campanha')
 function selectItem(id: string): void {
   activeItem.value = id
   if (isMobile.value) isCollapsed.value = true
+
+  if (id === 'nova-campanha') {
+    router.push('/')
+  } else if (id === 'campanhas') {
+    router.push('/campanhas')
+  } else if (id === 'usuarios') {
+    router.push('/admin')
+  }
 }
+
+watch(
+  () => route?.path,
+  (path) => {
+    if (!path) return
+    if (path.startsWith('/campanhas')) {
+      activeItem.value = 'campanhas'
+    } else if (path.startsWith('/admin')) {
+      activeItem.value = 'usuarios'
+    } else if (path === '/') {
+      activeItem.value = 'nova-campanha'
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

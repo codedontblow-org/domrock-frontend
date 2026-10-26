@@ -4,6 +4,8 @@ import HomeView from '../views/HomeView.vue'
 import ChatPage from '../(user)/chat/Page.vue'
 import LoginPage from '../(auth)/login/Page.vue'
 import AdminUsers from '../(admin)/users/Page.vue'
+import CampanhasPage from '../(user)/campanhas/Page.vue'
+import CampanhaDetalhePage from '../(user)/campanhas/[id]/Page.vue'
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,7 +18,17 @@ export const router = createRouter({
           path: '',
           name: 'chat',
           component: ChatPage,
-        }
+        },
+        {
+          path: 'campanhas',
+          name: 'campanhas',
+          component: CampanhasPage,
+        },
+        {
+          path: 'campanhas/:id',
+          name: 'campanha-detalhe',
+          component: CampanhaDetalhePage,
+        },
       ]
     },
     {

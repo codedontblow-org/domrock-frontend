@@ -20,6 +20,11 @@ const html = computed(() => (props.papel === 'agente' ? renderizarMarkdown(props
 
 <template>
   <div v-if="papel === 'agente'" class="speech-bubble speech-bubble--agente" v-html="html" />
+  <div v-else-if="papel === 'sistema'" class="speech-bubble speech-bubble--sistema">
+    <span class="sistema-linha" aria-hidden="true" />
+    <span class="sistema-texto">{{ message }}</span>
+    <span class="sistema-linha" aria-hidden="true" />
+  </div>
   <div v-else class="speech-bubble" :class="`speech-bubble--${papel}`" :role="papel === 'erro' ? 'alert' : undefined">
     {{ message }}
   </div>
@@ -78,5 +83,28 @@ const html = computed(() => (props.papel === 'agente' ? renderizarMarkdown(props
     font-family: var(--font-raleway);
     font-size: 14px;
     line-height: 1.5;
+  }
+
+  .speech-bubble--sistema {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    background-color: transparent;
+    border-radius: 0;
+  }
+
+  .sistema-linha {
+    flex: 1;
+    height: 1px;
+    background-color: rgb(255 255 255 / 10%);
+  }
+
+  .sistema-texto {
+    color: var(--color-gray-txt2-dark);
+    font-family: var(--font-raleway);
+    font-size: 12px;
+    white-space: nowrap;
   }
 </style>

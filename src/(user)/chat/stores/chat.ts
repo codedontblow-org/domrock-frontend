@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
-import type { CenarioAlternativo, MensagemChat, PapelMensagem, RegraCampanha, ValorParametro } from '../types'
+import type { CenarioAlternativo, MensagemChat, PapelMensagem, RegraCampanha, ResultadoSimulacao, ValorParametro } from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
 
@@ -74,8 +74,18 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const temSimulacao = computed(() =>
+    mensagens.value.some((m) => m.resultado !== undefined),
+  )
+
+  const ultimoResultado = computed<ResultadoSimulacao | null>(() => {
+    const com = mensagens.value.filter((m) => m.resultado !== undefined)
+    return com.length > 0 ? (com[com.length - 1]!.resultado ?? null) : null
+  })
+
   return {
     chatId, mensagens, regra, aguardandoLana, simulando, ocupado, camposVazios, podeSimular,
+    temSimulacao, ultimoResultado,
     enviar, atualizarParametro, aplicarCenario, simular,
   }
 })
