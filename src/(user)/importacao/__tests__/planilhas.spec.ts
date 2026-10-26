@@ -63,6 +63,15 @@ describe('separarPorMes', () => {
     expect(nomesPorMes(arquivos)['2025-08']).toEqual(['BASE RH_AGO25.xlsx', 'BASE_VENDAS_AGO25.xlsx', 'BASE_COMMISS_AGO25.xlsx'])
   })
 
+  it('Comissão enviada sozinha monta envio único sem competência', () => {
+    const arquivos = planilhas('BASE_COMMISS_FINAL.xlsx')
+
+    const { lotes, problemas } = separarPorMes(arquivos)
+
+    expect(problemas).toEqual([])
+    expect(lotes).toEqual([{ competencia: null, arquivos }])
+  })
+
   it.each([
     [['BASE RH_OUT25.xlsx'], 'out/2025: falta a planilha de Vendas'],
     [['BASE_VENDAS_OUT25.xlsx'], 'out/2025: falta a planilha de RH'],
@@ -70,7 +79,6 @@ describe('separarPorMes', () => {
     [['BASE RH_OUT25.csv'], 'BASE RH_OUT25.csv: só planilhas .xlsx'],
     [['planilha.xlsx'], 'planilha.xlsx: o nome não diz se é RH, Vendas ou Comissão'],
     [['BASE RH.xlsx'], 'BASE RH.xlsx: o nome não diz o mês (ex.: BASE RH_OUT25.xlsx)'],
-    [['BASE_COMMISS_FINAL.xlsx'], 'A Comissão vai junto com o RH e as Vendas de um mês'],
     [
       ['BASE RH_OUT25.xlsx', 'BASE_VENDAS_OUT25.xlsx', 'BASE_COMMISS_FINAL.xlsx', 'BASE_COMISSAO_NOVA.xlsx'],
       'Mais de uma planilha de Comissão sem mês no nome',

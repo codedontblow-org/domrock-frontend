@@ -18,6 +18,12 @@ describe('resumo da fila de meses', () => {
     expect(resumoDaFila([mes(null, 'PROCESSANDO')], true)).toBe('Lendo as planilhas')
   })
 
+  it('rodando com a Comissão sozinha: "Comissão", porque esse envio nunca ganha mês', () => {
+    const comissao: MesDaFila = { ...mes(null, 'PROCESSANDO'), arquivos: [{ nome: 'BASE_COMMISS_FINAL.xlsx', tamanho: 9_000 }] }
+
+    expect(resumoDaFila([comissao], true)).toBe('Comissão')
+  })
+
   it('terminada: quantos meses em cada situação, no singular e no plural', () => {
     const fila = [
       mes('2025-07', 'CONCLUIDO'), mes('2025-08', 'CONCLUIDO'), mes('2025-09', 'PENDENTE'),
