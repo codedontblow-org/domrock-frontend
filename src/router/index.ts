@@ -4,8 +4,12 @@ import HomeView from '../views/HomeView.vue'
 import ChatPage from '../(user)/chat/Page.vue'
 import LoginPage from '../(auth)/login/Page.vue'
 import AdminUsers from '../(admin)/users/Page.vue'
+import CampanhaPage from '../(user)/campanha/Page.vue'
 import CampanhasPage from '../(user)/campanhas/Page.vue'
 import CampanhaDetalhePage from '../(user)/campanhas/[id]/Page.vue'
+import VigentePage from '../(user)/vigente/Page.vue'
+import RelatoriosPage from '../(user)/relatorios/Page.vue'
+import ConfiguracoesPage from '../(user)/configuracoes/Page.vue'
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,6 +24,11 @@ export const router = createRouter({
           component: ChatPage,
         },
         {
+          path: 'campanha',
+          name: 'campanha',
+          component: CampanhaPage,
+        },
+        {
           path: 'campanhas',
           name: 'campanhas',
           component: CampanhasPage,
@@ -29,6 +38,21 @@ export const router = createRouter({
           name: 'campanha-detalhe',
           component: CampanhaDetalhePage,
         },
+        {
+          path: 'vigente',
+          name: 'vigente',
+          component: VigentePage,
+        },
+        {
+          path: 'relatorios',
+          name: 'relatorios',
+          component: RelatoriosPage,
+        },
+        {
+          path: 'configuracoes',
+          name: 'configuracoes',
+          component: ConfiguracoesPage,
+        }
       ]
     },
     {

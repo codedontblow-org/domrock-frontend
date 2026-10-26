@@ -2,6 +2,7 @@ export interface MenuItem {
   id: string
   label: string
   icon: string
+  rota?: string
 }
 
 export interface Chat {

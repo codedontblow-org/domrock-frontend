@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
 import { usuarioLogado } from '@/services/auth'
 import { saudacao } from './formatacao'
 import Input from './components/Input.vue';
 import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
+import FerramentasDropdown from './components/FerramentasDropdown.vue'
 import BotoesCampanha from '../campanhas/components/BotoesCampanha.vue'
 import ModalSalvarCampanha from '../campanhas/components/ModalSalvarCampanha.vue'
 import { useChatStore } from './stores/chat'
@@ -15,8 +17,21 @@ import type { AcaoCampanha } from '../campanhas/types'
 
 const chat = useChatStore()
 const campanhas = useCampanhasStore()
-const { mensagens, regra, aguardandoLana, simulando, camposVazios, podeSimular, temSimulacao } = storeToRefs(chat)
+const {
+  mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular, etapaAprovacao, ocupado,
+  somenteLeitura, temSimulacao,
+} = storeToRefs(chat)
+const rota = useRoute()
+
+
+watch(() => rota.query.simulacao, (simulacao) => {
+  const id = Number(simulacao)
+  if (simulacao && Number.isInteger(id)) chat.abrirSimulacao(id)
+  else if (somenteLeitura.value) chat.novaConversa()
+}, { immediate: true })
 const fimDaConversa = ref<HTMLElement | null>(null)
+// Saudação com o primeiro nome de quem está logado (salvo no login).
+const primeiroNome = (JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nome ?? '').trim().split(/\s+/)[0]
 // Recolher a ficha dá a largura toda ao chat (útil para ler o resultado da simulação).
 const fichaRecolhida = ref(false)
 const statusFicha = computed(() => {
@@ -25,9 +40,10 @@ const statusFicha = computed(() => {
   return faltam === 1 ? '1 campo pendente' : `${faltam} campos pendentes`
 })
 // Depois da primeira troca, o convite inicial some: a conversa já diz o que fazer.
-const placeholderDoCampo = computed(() =>
-  mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana',
-)
+const placeholderDoCampo = computed(() => {
+  if (somenteLeitura.value) return 'Conversa aberta só para consulta'
+  return mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana'
+})
 const textoSaudacao = saudacao(usuarioLogado()?.nome)
 
 const modalAberto = ref(false)
@@ -113,18 +129,30 @@ watch(() => mensagens.value.length, async () => {
     :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
-        <h1>{{ textoSaudacao }}</h1>
+        <h1>{{ primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!' }}</h1>
         <p>O que você tem em mente hoje?</p>
       </div>
 
       <div v-else class="messages" aria-live="polite">
         <template v-for="mensagem in mensagens" :key="mensagem.id">
+          <FerramentasDropdown
+            v-if="mensagem.papel === 'agente' && mensagem.events && mensagem.events.length > 0"
+            :events="mensagem.events"
+          />
           <ResultadoSimulacao v-if="mensagem.resultado" :resultado="mensagem.resultado"
             @aplicar-cenario="chat.aplicarCenario" />
           <SpeechBubble v-else :message="mensagem.texto" :papel="mensagem.papel" />
         </template>
         <p v-if="aguardandoLana" class="pensando">A Lana está escrevendo…</p>
-        <p v-if="simulando" class="pensando">A Lana está gerando o código da regra e simulando sobre os dados reais…</p>
+        <!-- A etapa vem pronta do backend (contrato 4.2); o front só mostra. -->
+        <p v-if="simulando" class="pensando">
+          <template v-if="etapaSimulacao">{{ etapaSimulacao }} · </template>A Lana está gerando o código da regra e simulando sobre os dados reais…
+        </p>
+        
+        <div class="flex items-center gap-3 self-start">
+          <i class="bi bi-info-circle text-label text-gray-txt2-dark"></i>
+          <p class="text-label text-gray-txt2-dark">Até a Lana pode cometer erros! Valide todas as informações antes de compartilhar uma campanha.</p>
+        </div>
         <div ref="fimDaConversa" class="fim-da-conversa" />
       </div>
 
@@ -139,7 +167,7 @@ watch(() => mensagens.value.length, async () => {
           @salvar="modalAberto = true"
           @acao="executarAcao"
         />
-        <Input :ocupado="aguardandoLana || simulando" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
+        <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
       </div>
     </div>
 
@@ -151,8 +179,11 @@ watch(() => mensagens.value.length, async () => {
           :campos-vazios="camposVazios"
           :pode-simular="podeSimular"
           :simulando="simulando"
+          :aprovacao="etapaAprovacao"
+          :ocupado="ocupado"
           @alterar="chat.atualizarParametro"
           @simular="chat.simular"
+          @enviar-aprovacao="chat.enviarParaAprovacao"
           @recolher="fichaRecolhida = true"
         />
       </div>

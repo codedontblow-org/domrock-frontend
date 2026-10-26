@@ -19,6 +19,11 @@ export function usuarioLogado(): UsuarioLogado | null {
     return JSON.parse(localStorage.getItem('usuario') ?? 'null')
 }
 
+/** Perfil salvo no login decide o que a tela mostra. Ex.: ehSupervisor() -> true para o Sérgio */
+export function ehSupervisor(): boolean {
+    return localStorage.getItem('perfil') === 'SUPERVISOR'
+}
+
 export async function login(
     email: string,
     senha: string

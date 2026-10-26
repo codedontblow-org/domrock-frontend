@@ -19,42 +19,42 @@ const html = computed(() => (props.papel === 'agente' ? renderizarMarkdown(props
 </script>
 
 <template>
-  <div v-if="papel === 'agente'" class="speech-bubble speech-bubble--agente" v-html="html" />
+  <div v-if="papel === 'agente'" class="speech-bubble speech-bubble--agente text-body font-raleway" v-html="html" />
   <div v-else-if="papel === 'sistema'" class="speech-bubble speech-bubble--sistema">
     <span class="sistema-linha" aria-hidden="true" />
     <span class="sistema-texto">{{ message }}</span>
     <span class="sistema-linha" aria-hidden="true" />
   </div>
   <div v-else class="speech-bubble" :class="`speech-bubble--${papel}`" :role="papel === 'erro' ? 'alert' : undefined">
-    {{ message }}
+    <!-- Texto escuro só no balão azul do usuário: o de erro tem fundo transparente sobre a página escura. -->
+    <p class="text-body font-raleway" :class="{ 'text-black-bg1': papel === 'usuario' }">
+      {{ message }}
+    </p>
   </div>
 </template>
 
 <style scoped>
   .speech-bubble {
     display: inline-block;
-    max-width: 448px;
+    max-width: 500px;
     align-self: flex-end;
-    padding: 8px 12px;
-    border-radius: 6px 6px 0 6px;
+    padding: 10px 15px;
+    border-radius: 15px;
+    border-bottom-right-radius: 0;
     background-color: var(--color-blue);
-    color: var(--color-white-txt1);
-    font-family: var(--font-inconsolata);
-    font-size: 12px;
     line-height: 1.2;
     white-space: pre-wrap;
   }
 
   .speech-bubble--agente {
     align-self: flex-start;
-    max-width: 620px;
+    width: 100%;
+    max-width: 100%;
     padding: 4px 0;
     border-radius: 0;
     background-color: transparent;
     color: var(--color-white-txt1);
     font-family: var(--font-raleway);
-    font-size: 15px;
-    line-height: 1.6;
     white-space: normal;
   }
 

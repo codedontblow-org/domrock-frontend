@@ -7,7 +7,6 @@ export interface OpcaoParametro {
   label: string
 }
 
-// Uma das pontas pode vir null quando o usuário só disse "a partir de 24/11".
 export interface Periodo {
   data_inicio: string | null
   data_fim: string | null
@@ -34,10 +33,25 @@ export interface RegraCampanha {
   faltantes: string[]
 }
 
+export interface EventoAgente {
+  ferramenta: string
+  descricao_legivel: string
+  tempo: number
+  situacao: string
+  tabelas?: string[] | null
+  competencias?: string[] | null
+  filtros?: unknown
+  registros?: number | null
+  sql?: string | null
+  args?: Record<string, unknown> | null
+  result?: unknown
+}
+
 export interface RespostaChat {
   chat_id: string
   response: string
   regra: RegraCampanha | null
+  events?: EventoAgente[]
 }
 
 export interface QuebraDimensao {
@@ -54,7 +68,6 @@ export interface ImpactoPessoas {
   maior_acrescimo: number
 }
 
-// Variação da regra já simulada pela Lana (nunca estimada pela LLM), pronta para ir ao painel.
 export interface CenarioAlternativo {
   tipo: 'ajustar_acrescimo' | 'sem_marca'
   titulo: string
@@ -90,6 +103,58 @@ export interface FalhaSimulacao {
   erros?: string[]
 }
 
+/** Status do job de simulação (contrato 4). */
+export type StatusSimulacao = 'PENDENTE' | 'RODANDO' | 'CONCLUIDA' | 'ERRO'
+
+/** Resposta 202 do POST /api/simulacoes: o job criado (contrato 4.1). */
+export interface SimulacaoCriada {
+  id: number
+  status: StatusSimulacao
+  etapa: string
+}
+
+interface CamposDoJob {
+  id: number
+  /** Texto pronto para o usuário ("Na fila", "Simulando", ...). */
+  etapa: string
+  chat_id: string
+  campanha_id: number | null
+  criada_em: string
+  concluida_em: string | null
+  duracao_ms: number | null
+  ficha: RegraCampanha
+}
+
+/** GET /api/simulacoes/{id} (contrato 4.2): `resultado` só na conclusão, `erro` só no ERRO. */
+export type SimulacaoAndamento =
+  | (CamposDoJob & { status: 'PENDENTE' | 'RODANDO'; resultado: null; erro: null })
+  | (CamposDoJob & { status: 'CONCLUIDA'; resultado: ResultadoSimulacao; erro: null })
+  | (CamposDoJob & { status: 'ERRO'; resultado: null; erro: FalhaSimulacao })
+
+/** Simulação que terminou: o `id` é o que o salvar da campanha pede (contrato 5.3). */
+export interface SimulacaoConcluida {
+  id: number
+  resultado: ResultadoSimulacao
+}
+
+/** O que o chat usa do objeto Campanha (contrato 5.2) devolvido pelo salvar e pelo submeter. */
+export interface CampanhaSalva {
+  id: number
+  nome: string
+  status: string
+}
+
+/**
+ * Onde a conversa está no caminho até a aprovação. `desatualizada`: o painel mudou depois da
+ * última simulação, e o backend submete sempre a última simulação concluída. `fora_do_orcamento`:
+ * o custo simulado passa do orçamento; vai para aprovação mesmo assim, com aviso (decisão do PO, 26/10).
+ */
+export type EtapaAprovacao =
+  | 'sem_simulacao' | 'desatualizada' | 'fora_do_orcamento' | 'pronta' | 'enviando' | 'enviada' | 'somente_leitura'
+
+/** Etapas em que o botão "Enviar para aprovação" funciona. */
+export const ETAPAS_DE_ENVIO: readonly EtapaAprovacao[] = ['pronta', 'fora_do_orcamento']
+
 export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro' | 'sistema'
 
 export interface MensagemChat {
@@ -97,4 +162,5 @@ export interface MensagemChat {
   papel: PapelMensagem
   texto: string
   resultado?: ResultadoSimulacao
+  events?: EventoAgente[]
 }

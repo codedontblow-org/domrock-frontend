@@ -12,7 +12,7 @@
     const erro = ref('')
     const isLoading = ref(false)
 
-    const submeterLogin = async () => {
+   const submeterLogin = async () => {
         erro.value = ''
         
         if(email.value === '' || senha.value === '') {
@@ -22,21 +22,23 @@
         
         isLoading.value = true
         try {
-            await login(email.value, senha.value)
-            await router.push('/')
+            const dados = await login(email.value, senha.value)
+            
+            // Redirecionamento explícito que resolve o bug do F5
+            if (dados.perfil === 'ADMIN') {
+                await router.push('/admin')
+            } else {
+                await router.push('/')
+            }
         }
         catch (error) {
-            const status = isAxiosError(error) ? error.response?.status : undefined
-            if(status === 401) {
+            if (isAxiosError(error) && error.response?.status === 401) {
                 await nextTick()
                 dispararErro('Email ou senha inválidos! Tente novamente.')
-            }
-            else
-            if (status === 400) {
+            } else if (isAxiosError(error) && error.response?.status === 400) {
                 await nextTick()
                 dispararErro('Algo parece errado com os dados informados!')
-            }
-            else {
+            } else {
                 await nextTick()
                 dispararErro('Não foi possível se conectar ao servidor nesse momento! Você pode tentar novamente mais tarde.')
                 console.error('Erro não identificado durante o login:', error)

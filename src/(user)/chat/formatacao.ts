@@ -46,3 +46,16 @@ export function lerDecimal(texto: string): number | null {
   const valor = Number(normalizado)
   return normalizado === '' || Number.isNaN(valor) ? null : valor
 }
+
+const NUMERO_DA_TABELA = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
+
+/**
+ * Célula dos dados que a consulta devolveu. Ex.: formatarCelula(333666.01) -> "333.666,01";
+ * formatarCelula(2025) -> "2025" (inteiro sem separador: pode ser ano ou matrícula); null -> "—"
+ */
+export function formatarCelula(valor: unknown): string {
+  if (valor === null || valor === undefined) return '—'
+  if (typeof valor === 'number') return Number.isInteger(valor) ? String(valor) : NUMERO_DA_TABELA.format(valor)
+  if (typeof valor === 'object') return JSON.stringify(valor)
+  return String(valor)
+}

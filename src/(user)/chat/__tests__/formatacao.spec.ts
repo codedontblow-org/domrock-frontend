@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatarMilhares, lerDecimal, lerReaisInteiros, saudacao } from '../formatacao'
+import { formatarCelula, formatarMilhares, lerDecimal, lerReaisInteiros, saudacao } from '../formatacao'
 
 describe('formatação dos campos da campanha', () => {
   it('lê reais inteiros ignorando pontos, prefixo e letras', () => {
@@ -26,5 +26,15 @@ describe('saudação da tela inicial', () => {
   it('sem nome, cumprimenta sem inventar um', () => {
     expect(saudacao(undefined)).toBe('Olá!')
     expect(saudacao('')).toBe('Olá!')
+  })
+})
+
+describe('células dos dados retornados pela consulta', () => {
+  it('formata número em pt-BR, vazio como travessão e o resto como texto', () => {
+    expect(formatarCelula(333666.01)).toBe('333.666,01')
+    expect(formatarCelula(2025)).toBe('2025')
+    expect(formatarCelula(null)).toBe('—')
+    expect(formatarCelula('AZUL')).toBe('AZUL')
+    expect(formatarCelula({ a: 1 })).toBe('{"a":1}')
   })
 })

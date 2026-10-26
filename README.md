@@ -19,7 +19,9 @@ domrock-frontend/
 │   │   ├── services/                    # Chamadas da campanha ao backend
 │   │   ├── stores/                      # Estado do chat (Pinia)
 │   │   └── __tests__/                   # Testes (Vitest)
-│   ├── (admin)/users/                   # Gestão de usuários do Administrador (A6-63, em construção)
+│   ├── (admin)/users/                   # Gestão de usuários do Administrador (A6-63)
+│   │   ├── components/                  # Tabela, modais de cadastro/edição e de desativar/reativar
+│   │   └── __tests__/                   # Testes (Vitest)
 │   ├── assets/                          # Fontes, ícones e estilos globais
 │   ├── components/                      # Componentes reutilizáveis (Sidebar, botões)
 │   ├── layouts/                         # Layout com a barra lateral

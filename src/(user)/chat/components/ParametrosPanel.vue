@@ -2,22 +2,40 @@
 import { computed, ref } from 'vue'
 import BotaoIcone from '@/components/BotaoIcone.vue'
 import ParametroCampo from './ParametroCampo.vue'
-import type { RegraCampanha, ValorParametro } from '../types'
+import { ETAPAS_DE_ENVIO, type EtapaAprovacao, type RegraCampanha, type ValorParametro } from '../types'
 
 const props = defineProps<{
   regra: RegraCampanha
   camposVazios: string[]
   podeSimular: boolean
   simulando: boolean
+  aprovacao: EtapaAprovacao
+  ocupado: boolean
 }>()
 
 const emit = defineEmits<{
   alterar: [key: string, valor: ValorParametro]
   simular: []
   recolher: []
+  enviarAprovacao: [nome: string]
 }>()
 
+/** Limite do nome no backend (CampanhaService.NOME_MAXIMO). */
+const NOME_MAXIMO = 150
+
 const comandoAberto = ref(false)
+const nomeCampanha = ref('')
+const podeEnviar = computed(() =>
+  ETAPAS_DE_ENVIO.includes(props.aprovacao) && !props.ocupado && nomeCampanha.value.trim().length > 0,
+)
+const avisoAprovacao = computed(() => {
+  if (props.aprovacao === 'enviada') return 'Enviada! Acompanhe em Campanhas.'
+  if (props.aprovacao === 'desatualizada') return 'A campanha mudou depois da simulação: simule de novo para enviar.'
+  if (props.aprovacao === 'fora_do_orcamento') {
+    return 'O custo passa do orçamento. Dá para enviar assim mesmo: o supervisor vê o estouro na análise.'
+  }
+  return 'O supervisor recebe a campanha com o resultado da última simulação.'
+})
 const regras = computed(() => props.regra.parametros.filter((p) => p.categoria === 'REGRA'))
 const limites = computed(() => props.regra.parametros.filter((p) => p.categoria === 'CONSTRAINT'))
 const pendentes = computed(() => props.camposVazios.length)
@@ -65,6 +83,23 @@ const aviso = computed(() => {
         {{ simulando ? 'Simulando…' : 'Simular campanha' }}
       </button>
       <p class="ficha-aviso" aria-live="polite">{{ aviso }}</p>
+
+      <!-- Depois de simular, a conversa pode virar campanha e ir para o supervisor. -->
+      <form v-if="aprovacao !== 'sem_simulacao' && aprovacao !== 'somente_leitura'" class="ficha-aprovacao"
+        @submit.prevent="podeEnviar && emit('enviarAprovacao', nomeCampanha)">
+        <input v-if="aprovacao !== 'enviada'" v-model="nomeCampanha" class="ficha-nome" type="text"
+          :maxlength="NOME_MAXIMO" placeholder="Nome da campanha (ex.: Natal 2025)" aria-label="Nome da campanha"
+          :disabled="aprovacao === 'enviando'" />
+        <button v-if="aprovacao !== 'enviada'" type="submit" class="ficha-enviar" :disabled="!podeEnviar">
+          {{ aprovacao === 'enviando' ? 'Enviando…' : 'Enviar para aprovação' }}
+        </button>
+        <p class="ficha-aviso" aria-live="polite" :class="{
+          'ficha-aviso--enviada': aprovacao === 'enviada',
+          'ficha-aviso--alerta': aprovacao === 'fora_do_orcamento',
+        }">
+          {{ avisoAprovacao }}
+        </p>
+      </form>
     </footer>
   </section>
 </template>
@@ -199,5 +234,63 @@ const aviso = computed(() => {
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
+}
+
+.ficha-aviso--enviada {
+  color: var(--color-green);
+}
+
+.ficha-aviso--alerta {
+  color: var(--color-orange);
+}
+
+.ficha-aprovacao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.ficha-nome {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 6px;
+  background-color: var(--color-black-bg1);
+  color: var(--color-white-txt1);
+  font-family: var(--font-raleway);
+  font-size: 14px;
+}
+
+.ficha-nome:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: -1px;
+}
+
+/* Secundário ao Simular: contorno no lugar do fundo cheio. */
+.ficha-enviar {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid var(--color-blue);
+  border-radius: 6px;
+  background: none;
+  color: var(--color-blue);
+  font-family: var(--font-raleway);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ficha-enviar:disabled {
+  border-color: rgb(255 255 255 / 8%);
+  color: var(--color-gray-txt3-dark);
+  cursor: not-allowed;
+}
+
+.ficha-enviar:focus-visible {
+  outline: 2px solid var(--color-white-txt1);
+  outline-offset: 2px;
 }
 </style>

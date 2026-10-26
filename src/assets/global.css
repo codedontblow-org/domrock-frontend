@@ -12,6 +12,7 @@
   --font-source-code-pro: "Source Code Pro", monospace;
   --font-raleway: "Raleway", sans-serif;
   --font-forum: "Forum", serif;
+  --font-label: "Inconsolata", monospace;
 
 
   /* ========================================
@@ -28,7 +29,7 @@
   --text-code--line-height: 18px;
 
   --text-body: 16px;
-  --text-body--line-height: 16px;
+  --text-body--line-height: 20px;
 
   --text-highlight-1: 18px;
   --text-highlight-1--line-height: 16px;

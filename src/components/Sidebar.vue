@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
+
 import { encerrarSessao } from '@/services/auth'
 
 const router = useRouter()
@@ -47,15 +48,15 @@ const menuItems = computed<MenuItem[]> (() => {
 
     return [
       //pluscircle  
-      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle' },
+      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle', rota: '/ '},
       //piggybank
-      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank' },
+      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: '/campanha' },
       //calendar4event
-      { id: 'agendado', label: 'Agendado', icon: 'bi bi-calendar4-event' },
+      { id: 'vigente', label: 'Vigente', icon: 'bi bi-calendar4-event', rota: '/vigente' },
       //clipboard
-      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard' },
+      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard', rota: '/relatorios' },
       //gear
-      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear' }
+      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear', rota: '/configuracoes' }
     ]
 })
 
@@ -74,24 +75,18 @@ const user = ref<User>({
 
 const activeItem = ref<string>('nova-campanha')
 
-function selectItem(id: string): void {
-  activeItem.value = id
+function selectItem(item: MenuItem): void {
+  activeItem.value = item.id
+  if (item.rota) router.push(item.rota)
   if (isMobile.value) isCollapsed.value = true
-
-  if (id === 'nova-campanha') {
-    router.push('/')
-  } else if (id === 'campanhas') {
-    router.push('/campanhas')
-  } else if (id === 'usuarios') {
-    router.push('/admin')
-  }
 }
 
 watch(
   () => route?.path,
   (path) => {
     if (!path) return
-    if (path.startsWith('/campanhas')) {
+    // '/campanha' cobre também '/campanhas' e '/campanhas/:id'
+    if (path.startsWith('/campanha')) {
       activeItem.value = 'campanhas'
     } else if (path.startsWith('/admin')) {
       activeItem.value = 'usuarios'
@@ -135,7 +130,7 @@ watch(
         :key="item.id"
         class="menu-item"
         :class="{ active: activeItem === item.id }"
-        @click="selectItem(item.id)"
+        @click="selectItem(item)"
       >
         <i :class="[item.icon, 'menu-icon']"></i>
         <span class="menu-label">{{ item.label }}</span>
