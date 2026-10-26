@@ -2,9 +2,9 @@
 import BotaoTexto from '@/components/BotaoTexto.vue'
 import type { Usuario } from '@/types/usuarios'
 import { useFormularioUsuario } from '../useFormularioUsuario'
-import AlertaErro from './AlertaErro.vue'
+import AlertaErro from '@/components/AlertaErro.vue'
 import CampoUsuario from './CampoUsuario.vue'
-import JanelaModal from './JanelaModal.vue'
+import JanelaModal from '@/components/JanelaModal.vue'
 import SeletorPerfil from './SeletorPerfil.vue'
 
 // modal-usuario do protótipo: novo (2022:3283) ou edição (2022:3370), que não mostra a senha.

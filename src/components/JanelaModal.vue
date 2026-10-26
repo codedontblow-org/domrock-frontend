@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, useId } from 'vue'
 
-// Moldura dos modais de usuário (protótipo 2022:3283): 650px, Background2, borda Texto3 a 35%
-// e título com ícone. Esc e o clique fora fecham, como o Cancelar.
+// Moldura dos modais (protótipo 2022:3283; usuários e confirmação da importação): 650px, Background2,
+// borda Texto3 a 35% e título com ícone. Esc e o clique fora fecham, como o Cancelar.
 const props = defineProps<{
   titulo: string
   icone: string
