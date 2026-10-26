@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import BotaoTexto from '@/components/BotaoTexto.vue'
 import type { Usuario } from '@/types/usuarios'
 import { useSituacaoUsuario } from '../useSituacaoUsuario'
-import AlertaErro from './AlertaErro.vue'
-import JanelaModal from './JanelaModal.vue'
+import AlertaErro from '@/components/AlertaErro.vue'
+import JanelaModal from '@/components/JanelaModal.vue'
 
 // confirmar-desativacao do protótipo (2021:2277) e o estado de erro (2021:2350): a falha
 // aparece dentro do modal e o botão vira "Tentar de novo". Reativar segue o mesmo molde em verde.

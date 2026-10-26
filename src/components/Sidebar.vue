@@ -52,6 +52,10 @@ const menuItems = computed<MenuItem[]> (() => {
       { id: 'vigente', label: 'Vigente', icon: 'bi bi-calendar4-event', rota: '/vigente' },
       //clipboard
       { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard', rota: '/relatorios' },
+      //cloudarrowup: só o Supervisor importa a base do mês (A6-79)
+      ...(profile.value === 'SUPERVISOR'
+        ? [{ id: 'importar', label: 'Importar base', icon: 'bi bi-cloud-arrow-up', rota: '/importar' }]
+        : []),
       //gear
       { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear', rota: '/configuracoes' }
     ]
