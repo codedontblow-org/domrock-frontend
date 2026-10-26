@@ -49,8 +49,8 @@ const menuItems = computed<MenuItem[]> (() => {
     return [
       //pluscircle  
       { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle', rota: '/ '},
-      //piggybank
-      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: '/campanha' },
+      //piggybank. Supervisor cai na fila de aprovação; Gerente, em "Minhas campanhas" (decisão do PO, 26/10).
+      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: profile.value === 'SUPERVISOR' ? '/campanha' : '/campanhas' },
       //calendar4event
       { id: 'vigente', label: 'Vigente', icon: 'bi bi-calendar4-event', rota: '/vigente' },
       //clipboard
