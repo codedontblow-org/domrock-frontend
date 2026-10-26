@@ -146,6 +146,18 @@ describe('enviar para aprovação', () => {
     expect(chat.mensagens[chat.mensagens.length - 1]?.texto).toContain('Aguardando Aprovação')
   })
 
+  it('guarda a campanha que o submeter devolveu, para a barra mostrar nome, status e versão', async () => {
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+    await chat.simular()
+
+    await chat.enviarParaAprovacao('Natal 2025')
+
+    expect(chat.campanha).toEqual({ id: 12, nome: 'Natal 2025', status: 'AGUARDANDO_APROVACAO', versao_atual: 1 })
+    chat.novaConversa()
+    expect(chat.campanha).toBeNull()
+  })
+
   it('pede nova simulação se o painel mudou depois de simular', async () => {
     const chat = useChatStore()
     await chat.enviar('Natal')

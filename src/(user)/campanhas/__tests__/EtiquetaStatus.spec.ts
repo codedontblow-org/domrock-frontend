@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import EtiquetaStatus from '../components/EtiquetaStatus.vue'
-import type { StatusCampanha } from '../types'
+import { useStatusCampanha } from '../useStatusCampanha'
+import type { StatusCampanha } from '../../campanha/types'
 
 describe('EtiquetaStatus', () => {
   it.each([
@@ -53,5 +54,29 @@ describe('EtiquetaStatus', () => {
       const wrapper = mount(EtiquetaStatus, { props: { status } })
       expect(wrapper.text()).toContain(label)
     }
+  })
+
+  it('acompanha a troca de status depois de uma ação (ex.: Editar)', async () => {
+    const wrapper = mount(EtiquetaStatus, { props: { status: 'REPROVADA' } })
+
+    await wrapper.setProps({ status: 'RASCUNHO' })
+
+    expect(wrapper.text()).toContain('Rascunho')
+  })
+})
+
+describe('etiquetaVigencia', () => {
+  const { etiquetaVigencia } = useStatusCampanha()
+
+  it.each([
+    ['VIGENTE', 'Vigente'],
+    ['ENCERRADA', 'Encerrada'],
+    ['FUTURA', null],
+  ] as const)('APROVADA com vigência %s do backend -> %s', (vigencia, etiqueta) => {
+    expect(etiquetaVigencia({ status: 'APROVADA', vigencia })).toBe(etiqueta)
+  })
+
+  it('fora de APROVADA não há etiqueta de vigência', () => {
+    expect(etiquetaVigencia({ status: 'RASCUNHO', vigencia: 'VIGENTE' })).toBeNull()
   })
 })

@@ -1,19 +1,4 @@
-import type { AcaoCampanha, StatusCampanha } from './types'
-
-export function acoesDisponiveis(status: StatusCampanha): AcaoCampanha[] {
-  switch (status) {
-    case 'RASCUNHO':
-      return ['simular', 'submeter', 'arquivar']
-    case 'AGUARDANDO_APROVACAO':
-      return []
-    case 'APROVADA':
-      return ['solicitar_cancelamento']
-    case 'REPROVADA':
-      return ['editar', 'arquivar']
-    case 'ARQUIVADA':
-      return []
-  }
-}
+import type { AcaoCampanha } from '../campanha/types'
 
 export interface ConfigAcao {
   label: string
@@ -21,17 +6,15 @@ export interface ConfigAcao {
   icone: string
 }
 
+// Os botões que aparecem vêm de `acoes` (contrato 5.2); aqui fica só como cada um se apresenta.
+const BOTOES: Record<AcaoCampanha, ConfigAcao> = {
+  RENOMEAR: { label: 'Renomear', variante: 'secundario', icone: 'bi bi-input-cursor-text' },
+  SUBMETER: { label: 'Submeter para aprovação', variante: 'primario', icone: 'bi bi-send' },
+  EDITAR: { label: 'Editar', variante: 'primario', icone: 'bi bi-pencil' },
+  ARQUIVAR: { label: 'Arquivar', variante: 'secundario', icone: 'bi bi-archive' },
+}
+
+/** Ex.: configAcao('EDITAR') -> { label: 'Editar', variante: 'primario', icone: 'bi bi-pencil' } */
 export function configAcao(acao: AcaoCampanha): ConfigAcao {
-  switch (acao) {
-    case 'simular':
-      return { label: 'Simular', variante: 'secundario', icone: 'bi bi-play-circle' }
-    case 'submeter':
-      return { label: 'Submeter para aprovação', variante: 'primario', icone: 'bi bi-send' }
-    case 'arquivar':
-      return { label: 'Arquivar', variante: 'secundario', icone: 'bi bi-archive' }
-    case 'solicitar_cancelamento':
-      return { label: 'Solicitar cancelamento', variante: 'perigo', icone: 'bi bi-x-circle' }
-    case 'editar':
-      return { label: 'Editar', variante: 'primario', icone: 'bi bi-pencil' }
-  }
+  return BOTOES[acao]
 }

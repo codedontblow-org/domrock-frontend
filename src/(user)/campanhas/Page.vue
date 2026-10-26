@@ -2,17 +2,17 @@
 import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { useCampanhasStore } from './stores/campanhas'
+import { useCampanhasStore, type FiltroStatus } from './stores/campanhas'
 import { useStatusCampanha } from './useStatusCampanha'
+import { custoDaCampanha, diaDoInstante, periodoDaCampanha } from './formatacao'
 import EtiquetaStatus from './components/EtiquetaStatus.vue'
-import type { StatusCampanha } from './types'
 
 const router = useRouter()
 const store = useCampanhasStore()
-const { campanhsFiltradas, carregando, filtroStatus } = storeToRefs(store)
+const { campanhas, carregando, filtroStatus, erro } = storeToRefs(store)
 const { etiquetaVigencia } = useStatusCampanha()
 
-const filtros: Array<{ valor: StatusCampanha | 'TODOS'; rotulo: string }> = [
+const filtros: Array<{ valor: FiltroStatus; rotulo: string }> = [
   { valor: 'TODOS', rotulo: 'Todos' },
   { valor: 'RASCUNHO', rotulo: 'Rascunho' },
   { valor: 'AGUARDANDO_APROVACAO', rotulo: 'Aguardando' },
@@ -20,23 +20,6 @@ const filtros: Array<{ valor: StatusCampanha | 'TODOS'; rotulo: string }> = [
   { valor: 'REPROVADA', rotulo: 'Reprovada' },
   { valor: 'ARQUIVADA', rotulo: 'Arquivada' },
 ]
-
-function formatarData(iso: string): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function formatarMoeda(valor: number | null): string {
-  if (valor === null) return '—'
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-function formatarPeriodo(inicio: string, fim: string): string {
-  if (!inicio || !fim) return '—'
-  return `${formatarData(inicio)} – ${formatarData(fim)}`
-}
 
 function irParaDetalhe(id: number) {
   router.push(`/campanhas/${id}`)
@@ -58,7 +41,7 @@ onMounted(() => store.listar())
         type="button"
         class="filtro-chip"
         :class="{ 'filtro-chip--ativo': filtroStatus === f.valor }"
-        @click="filtroStatus = f.valor"
+        @click="store.filtrar(f.valor)"
       >
         {{ f.rotulo }}
       </button>
@@ -68,7 +51,11 @@ onMounted(() => store.listar())
       <p>Carregando campanhas…</p>
     </div>
 
-    <div v-else-if="campanhsFiltradas.length === 0" class="estado-vazio">
+    <div v-else-if="erro" class="estado-vazio" role="alert">
+      <p>{{ erro }}</p>
+    </div>
+
+    <div v-else-if="campanhas.length === 0" class="estado-vazio">
       <i class="bi bi-inbox estado-vazio-icone" aria-hidden="true" />
       <p>Nenhuma campanha encontrada.</p>
     </div>
@@ -87,7 +74,7 @@ onMounted(() => store.listar())
         </thead>
         <tbody>
           <tr
-            v-for="c in campanhsFiltradas"
+            v-for="c in campanhas"
             :key="c.id"
             class="tr-linha"
             tabindex="0"
@@ -99,15 +86,15 @@ onMounted(() => store.listar())
           >
             <td class="td">
               <span class="nome-campanha">{{ c.nome }}</span>
-              <span class="custo-mobile">{{ formatarMoeda(c.custo_incremental) }}</span>
+              <span class="custo-mobile">{{ custoDaCampanha(c.custo_adicional) }}</span>
             </td>
-            <td class="td td--periodo">{{ formatarPeriodo(c.periodo_inicio, c.periodo_fim) }}</td>
+            <td class="td td--periodo">{{ periodoDaCampanha(c.periodo) }}</td>
             <td class="td">
               <EtiquetaStatus :status="c.status" :vigencia="etiquetaVigencia(c)" />
             </td>
-            <td class="td td--ocultar-mobile">v{{ c.versao_atual }}</td>
-            <td class="td td--moeda td--ocultar-mobile-inline">{{ formatarMoeda(c.custo_incremental) }}</td>
-            <td class="td td--ocultar-mobile">{{ formatarData(c.atualizada_em) }}</td>
+            <td class="td td--ocultar-mobile">{{ c.versao_atual === null ? '—' : `v${c.versao_atual}` }}</td>
+            <td class="td td--moeda td--ocultar-mobile-inline">{{ custoDaCampanha(c.custo_adicional) }}</td>
+            <td class="td td--ocultar-mobile">{{ diaDoInstante(c.atualizada_em) }}</td>
           </tr>
         </tbody>
       </table>

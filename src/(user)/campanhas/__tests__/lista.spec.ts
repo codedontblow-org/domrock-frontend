@@ -1,137 +1,83 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import CampanhasPage from '../Page.vue'
-import { definirServicoCampanhas, useCampanhasStore } from '../stores/campanhas'
-import type { CampanhaDetalhe, CampanhaResumo } from '../types'
-import type { ServicoCampanhas } from '../services/campanhas'
+import { definirServicoCampanhas } from '../stores/campanhas'
+import { erroDoBackend, FakeServicoCampanhas, resumoBlackFriday } from './fakes'
 
 const pushMock = vi.fn()
-vi.mock('vue-router', () => ({
+// O store importa o `api`, que importa o router: o mock troca só o que a página usa.
+vi.mock('vue-router', async (original) => ({
+  ...(await original<typeof import('vue-router')>()),
   useRouter: () => ({ push: pushMock }),
 }))
 
-class FakeServico implements ServicoCampanhas {
-  lista: CampanhaResumo[] = [
-    {
-      id: 1,
-      nome: 'Black Friday 2025',
-      status: 'RASCUNHO',
-      versao_atual: 1,
-      periodo_inicio: '2025-11-24',
-      periodo_fim: '2025-11-30',
-      custo_incremental: 23736.1,
-      atualizada_em: '2025-11-20T10:00:00Z',
-      autor_nome: 'Você',
-    },
-    {
-      id: 2,
-      nome: 'Natal Premium',
-      status: 'AGUARDANDO_APROVACAO',
-      versao_atual: 2,
-      periodo_inicio: '2025-12-20',
-      periodo_fim: '2025-12-31',
-      custo_incremental: 45200.0,
-      atualizada_em: '2025-11-21T10:00:00Z',
-      autor_nome: 'Você',
-    },
-    {
-      id: 3,
-      nome: 'Dia das Mães',
-      status: 'APROVADA',
-      versao_atual: 1,
-      periodo_inicio: '2025-05-01',
-      periodo_fim: '2025-05-11',
-      custo_incremental: 18900.5,
-      atualizada_em: '2025-11-22T10:00:00Z',
-      autor_nome: 'Você',
-    },
-  ]
-
-  async listar(): Promise<CampanhaResumo[]> {
-    return [...this.lista]
-  }
-
-  async obter(id: number): Promise<CampanhaDetalhe> {
-    const c = this.lista.find((x) => x.id === id)
-    if (!c) throw new Error('Não encontrada')
-    return {
-      ...c,
-      autor_id: 1,
-      rule_id: 'r1',
-      chat_id: 'c1',
-      parametros: [],
-      resultado_simulacao: null,
-      versoes: [],
-      mensagens: [],
-    }
-  }
-
-  async salvar(_chatId: string, nome: string, _regraId: string): Promise<CampanhaResumo> {
-    const nova: CampanhaResumo = {
-      id: 99,
-      nome,
-      status: 'RASCUNHO',
-      versao_atual: 1,
-      periodo_inicio: '2025-11-24',
-      periodo_fim: '2025-11-30',
-      custo_incremental: 23736.1,
-      atualizada_em: new Date().toISOString(),
-      autor_nome: 'Você',
-    }
-    this.lista.unshift(nova)
-    return nova
-  }
-
-  async executarAcao(id: number): Promise<CampanhaResumo> {
-    return this.lista.find((c) => c.id === id)!
-  }
-}
-
 describe('Minhas Campanhas (Lista)', () => {
+  let servico: FakeServicoCampanhas
+
   beforeEach(() => {
     setActivePinia(createPinia())
-    definirServicoCampanhas(new FakeServico())
+    servico = new FakeServicoCampanhas()
+    servico.lista = [
+      resumoBlackFriday(),
+      resumoBlackFriday({
+        id: 13, nome: 'Natal Premium', status: 'AGUARDANDO_APROVACAO', versao_atual: 2,
+        periodo: { data_inicio: '2025-12-20', data_fim: '2025-12-31' }, custo_adicional: 45200,
+      }),
+      resumoBlackFriday({ id: 14, nome: 'Dia das Mães', status: 'APROVADA', versao_atual: 1, vigencia: 'ENCERRADA' }),
+    ]
+    definirServicoCampanhas(servico)
     pushMock.mockClear()
   })
 
-  it('renderiza a tabela com as campanhas e colunas esperadas', async () => {
+  it('mostra cada campanha com os campos do contrato 5.4', async () => {
     const wrapper = mount(CampanhasPage)
-    // aguarda onMounted
-    await vi.waitFor(() => {
-      expect(wrapper.findAll('tbody tr')).toHaveLength(3)
-    })
+    await flushPromises()
 
-    const texto = wrapper.text().replace(/\u00a0/g, ' ')
+    const texto = wrapper.text().replace(/ /g, ' ')
+    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
     expect(texto).toContain('Black Friday 2025')
     expect(texto).toContain('R$ 23.736,10')
-    expect(texto).toContain('Rascunho')
-    expect(texto).toContain('Natal Premium')
+    expect(texto).toContain('24/11/2025 – 30/11/2025')
     expect(texto).toContain('Aguardando aprovação')
+    expect(texto).toContain('v2')
+    expect(texto).toContain('Encerrada')
   })
 
-  it('filtra as campanhas ao clicar no chip de status', async () => {
+  it('campanha nunca submetida mostra "—" na versão', async () => {
+    servico.lista = [resumoBlackFriday({ versao_atual: null })]
     const wrapper = mount(CampanhasPage)
-    await vi.waitFor(() => {
-      expect(wrapper.findAll('tbody tr')).toHaveLength(3)
-    })
+    await flushPromises()
 
-    const chipAprovada = wrapper.findAll('.filtro-chip').find((c) => c.text() === 'Aprovada')
-    await chipAprovada?.trigger('click')
+    expect(wrapper.findAll('tbody td')[3]!.text()).toBe('—')
+  })
 
+  it('o chip de status pede a lista filtrada ao backend', async () => {
+    const wrapper = mount(CampanhasPage)
+    await flushPromises()
+
+    await wrapper.findAll('.filtro-chip').find((c) => c.text() === 'Aprovada')!.trigger('click')
+    await flushPromises()
+
+    expect(servico.filtrosPedidos).toEqual([undefined, 'APROVADA'])
     expect(wrapper.findAll('tbody tr')).toHaveLength(1)
     expect(wrapper.text()).toContain('Dia das Mães')
-    expect(wrapper.text()).not.toContain('Natal Premium')
   })
 
   it('navega para o detalhe ao clicar na linha da campanha', async () => {
     const wrapper = mount(CampanhasPage)
-    await vi.waitFor(() => {
-      expect(wrapper.findAll('tbody tr')).toHaveLength(3)
-    })
+    await flushPromises()
 
     await wrapper.find('tbody tr').trigger('click')
-    expect(pushMock).toHaveBeenCalledWith('/campanhas/1')
+
+    expect(pushMock).toHaveBeenCalledWith('/campanhas/12')
+  })
+
+  it('mostra a mensagem do backend quando a lista falha', async () => {
+    servico.falha = erroDoBackend(500, 'Erro ao listar campanhas')
+    const wrapper = mount(CampanhasPage)
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').text()).toBe('Erro ao listar campanhas')
   })
 })
-

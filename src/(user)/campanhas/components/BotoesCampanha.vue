@@ -1,104 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import EtiquetaStatus from './EtiquetaStatus.vue'
-import { acoesDisponiveis, configAcao } from '../acoes'
-import type { AcaoCampanha, StatusCampanha } from '../types'
+import { configAcao } from '../acoes'
+import type { AcaoCampanha, StatusCampanha } from '../../campanha/types'
 
-const props = defineProps<{
-  podeSimular: boolean
-  campanhaId: number | null
-  status: StatusCampanha | null
-  nome: string | null
-  versao: number | null
-  salvando: boolean
+defineProps<{
+  /** As `acoes` da Campanha (contrato 5.2): um botão por item, na ordem do backend. */
+  acoes: AcaoCampanha[]
+  status: StatusCampanha
+  agindo: boolean
 }>()
 
 const emit = defineEmits<{
-  salvar: []
   acao: [acao: AcaoCampanha]
 }>()
-
-const acoes = computed(() =>
-  props.status ? acoesDisponiveis(props.status) : [],
-)
 </script>
 
 <template>
   <div class="botoes-campanha">
-    <template v-if="campanhaId === null">
-      <button
-        type="button"
-        class="btn btn--salvar"
-        :disabled="!podeSimular || salvando"
-        @click="emit('salvar')"
-      >
-        <i class="bi bi-bookmark-plus" aria-hidden="true" />
-        {{ salvando ? 'Salvando…' : 'Salvar campanha' }}
-      </button>
-    </template>
-
-    <template v-else>
-      <div class="campanha-info">
-        <span class="campanha-nome">{{ nome }}</span>
-        <EtiquetaStatus v-if="status" :status="status" />
-        <span v-if="versao !== null" class="campanha-versao">v{{ versao }}</span>
-      </div>
-
-      <div class="campanha-acoes">
-        <button
-          v-for="acao in acoes"
-          :key="acao"
-          type="button"
-          class="btn"
-          :class="`btn--${configAcao(acao).variante}`"
-          @click="emit('acao', acao)"
-        >
-          <i :class="configAcao(acao).icone" aria-hidden="true" />
-          {{ configAcao(acao).label }}
-        </button>
-      </div>
-    </template>
+    <button
+      v-for="acao in acoes"
+      :key="acao"
+      type="button"
+      class="btn"
+      :class="`btn--${configAcao(acao).variante}`"
+      :disabled="agindo"
+      @click="emit('acao', acao)"
+    >
+      <i :class="configAcao(acao).icone" aria-hidden="true" />
+      {{ configAcao(acao).label }}
+    </button>
+    <!-- Sem rota até o A6-88 (cancelamento): o botão fica e não faz nada (decisão do PO, 26/10). -->
+    <button v-if="status === 'APROVADA'" type="button" class="btn btn--perigo">
+      <i class="bi bi-x-circle" aria-hidden="true" />
+      Solicitar cancelamento
+    </button>
   </div>
 </template>
 
 <style scoped>
 .botoes-campanha {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   padding: 8px 0;
-}
-
-.campanha-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.campanha-nome {
-  color: var(--color-white-txt1);
-  font-family: var(--font-raleway);
-  font-size: 14px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.campanha-versao {
-  color: var(--color-gray-txt2-dark);
-  font-family: var(--font-inconsolata);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.campanha-acoes {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .btn {
@@ -114,11 +57,6 @@ const acoes = computed(() =>
   cursor: pointer;
   transition: opacity 0.15s;
   white-space: nowrap;
-}
-
-.btn--salvar {
-  background-color: var(--color-blue);
-  color: var(--color-black-bg1);
 }
 
 .btn--primario {

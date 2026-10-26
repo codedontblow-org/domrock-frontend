@@ -4,8 +4,8 @@ import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
 import {
   ETAPAS_DE_ENVIO,
-  type CenarioAlternativo, type EtapaAprovacao, type MensagemChat, type PapelMensagem, type RegraCampanha,
-  type ResultadoSimulacao, type ValorParametro,
+  type CampanhaSalva, type CenarioAlternativo, type EtapaAprovacao, type MensagemChat, type PapelMensagem,
+  type RegraCampanha, type ValorParametro,
 } from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
@@ -34,7 +34,7 @@ export const useChatStore = defineStore('chat', () => {
   /** Conversa reaberta pelo painel de aprovação: só para consulta, não simula nem envia. */
   const somenteLeitura = ref(false)
   /** Campanha salva desta conversa: se o submeter falhar, a nova tentativa não salva de novo. */
-  const campanhaId = ref<number | null>(null)
+  const campanha = ref<CampanhaSalva | null>(null)
   const enviandoAprovacao = ref(false)
   const enviadaParaAprovacao = ref(false)
 
@@ -118,8 +118,8 @@ export const useChatStore = defineStore('chat', () => {
     }
     enviandoAprovacao.value = true
     try {
-      campanhaId.value ??= (await servicoCampanha.salvarCampanha(chatId.value, simulacaoId.value, nome.trim())).id
-      await servicoCampanha.submeter(campanhaId.value)
+      campanha.value ??= await servicoCampanha.salvarCampanha(chatId.value, simulacaoId.value, nome.trim())
+      campanha.value = await servicoCampanha.submeter(campanha.value.id)
       enviadaParaAprovacao.value = true
       adicionar('agente', `Enviei "${nome.trim()}" para aprovação. Ela aparece em Campanhas, na aba Aguardando Aprovação.`)
     } catch (erro) {
@@ -137,7 +137,7 @@ export const useChatStore = defineStore('chat', () => {
     simulacaoId.value = null
     regraSimulada.value = null
     cabeNoOrcamento.value = false
-    campanhaId.value = null
+    campanha.value = null
     enviadaParaAprovacao.value = false
     somenteLeitura.value = false
   }
@@ -164,19 +164,10 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  const temSimulacao = computed(() =>
-    mensagens.value.some((m) => m.resultado !== undefined),
-  )
-
-  const ultimoResultado = computed<ResultadoSimulacao | null>(() => {
-    const com = mensagens.value.filter((m) => m.resultado !== undefined)
-    return com.length > 0 ? (com[com.length - 1]!.resultado ?? null) : null
-  })
-
   return {
     chatId, mensagens, regra, aguardandoLana, simulando, etapaSimulacao, ocupado, camposVazios, podeSimular,
-    etapaAprovacao, somenteLeitura, temSimulacao, ultimoResultado, enviar, atualizarParametro, aplicarCenario,
-    simular, enviarParaAprovacao, novaConversa, abrirSimulacao,
+    etapaAprovacao, somenteLeitura, campanha, enviar, atualizarParametro, aplicarCenario, simular, enviarParaAprovacao,
+    novaConversa, abrirSimulacao,
   }
 })
 

@@ -9,17 +9,13 @@ import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import FerramentasDropdown from './components/FerramentasDropdown.vue'
-import BotoesCampanha from '../campanhas/components/BotoesCampanha.vue'
-import ModalSalvarCampanha from '../campanhas/components/ModalSalvarCampanha.vue'
+import ResumoCampanha from '../campanhas/components/ResumoCampanha.vue'
 import { useChatStore } from './stores/chat'
-import { useCampanhasStore } from '../campanhas/stores/campanhas'
-import type { AcaoCampanha } from '../campanhas/types'
 
 const chat = useChatStore()
-const campanhas = useCampanhasStore()
 const {
   mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular, etapaAprovacao, ocupado,
-  somenteLeitura, temSimulacao,
+  somenteLeitura, campanha,
 } = storeToRefs(chat)
 const rota = useRoute()
 
@@ -45,76 +41,6 @@ const placeholderDoCampo = computed(() => {
   return mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana'
 })
 const textoSaudacao = saudacao(usuarioLogado()?.nome)
-
-const modalAberto = ref(false)
-const salvando = ref(false)
-
-const campanhaId = ref<number | null>(null)
-const campanhaNome = ref<string | null>(null)
-const campanhaStatus = computed(() => {
-  if (campanhaId.value === null) return null
-  const c = campanhas.campanhas.find((x) => x.id === campanhaId.value)
-  return c?.status ?? null
-})
-const campanhaVersao = computed(() => {
-  if (campanhaId.value === null) return null
-  const c = campanhas.campanhas.find((x) => x.id === campanhaId.value)
-  return c?.versao_atual ?? null
-})
-
-async function salvarCampanha(nome: string) {
-  if (!regra.value) return
-  modalAberto.value = false
-  salvando.value = true
-  try {
-    const periodoParam = regra.value.parametros.find((p) => p.key === 'periodo')?.value as
-      | { data_inicio: string | null; data_fim: string | null }
-      | undefined
-    const custo =
-      chat.ultimoResultado?.orcamento.custo_incremental ??
-      chat.ultimoResultado?.totais.diferenca ??
-      (nome.toLowerCase().includes('black friday') ? 23736.1 : null)
-
-    const nova = await campanhas.salvar(chat.chatId, nome, regra.value.rule_id, {
-      custo_incremental: custo,
-      periodo_inicio:
-        periodoParam?.data_inicio ?? (nome.toLowerCase().includes('black friday') ? '2025-11-24' : ''),
-      periodo_fim:
-        periodoParam?.data_fim ?? (nome.toLowerCase().includes('black friday') ? '2025-11-30' : ''),
-      parametros: regra.value.parametros,
-      resultado_simulacao: chat.ultimoResultado,
-    })
-    campanhaId.value = nova.id
-    campanhaNome.value = nova.nome
-    chat.mensagens.push({
-      id: chat.mensagens.length + 1,
-      papel: 'sistema',
-      texto: `Campanha "${nome}" salva como rascunho.`,
-    })
-  } finally {
-    salvando.value = false
-  }
-}
-
-async function executarAcao(acao: AcaoCampanha) {
-  if (campanhaId.value === null) return
-  await campanhas.executarAcao(campanhaId.value, acao)
-  if (acao === 'submeter') {
-    chat.mensagens.push({
-      id: chat.mensagens.length + 1,
-      papel: 'sistema',
-      texto: `Enviado para análise — v${campanhaVersao.value ?? 1}`,
-    })
-  } else if (acao === 'arquivar') {
-    chat.mensagens.push({
-      id: chat.mensagens.length + 1,
-      papel: 'sistema',
-      texto: 'Campanha arquivada.',
-    })
-  } else if (acao === 'simular') {
-    await chat.simular()
-  }
-}
 
 // Mantém a última mensagem (ou o resultado) visível quando algo novo chega.
 watch(() => mensagens.value.length, async () => {
@@ -157,15 +83,11 @@ watch(() => mensagens.value.length, async () => {
       </div>
 
       <div class="chat-input">
-        <BotoesCampanha
-          :pode-simular="temSimulacao"
-          :campanha-id="campanhaId"
-          :status="campanhaStatus"
-          :nome="campanhaNome"
-          :versao="campanhaVersao"
-          :salvando="salvando"
-          @salvar="modalAberto = true"
-          @acao="executarAcao"
+        <ResumoCampanha
+          v-if="campanha"
+          :nome="campanha.nome"
+          :status="campanha.status"
+          :versao="campanha.versao_atual"
         />
         <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
       </div>
@@ -199,8 +121,6 @@ watch(() => mensagens.value.length, async () => {
       </button>
     </aside>
   </div>
-
-  <ModalSalvarCampanha :aberto="modalAberto" @confirmar="salvarCampanha" @cancelar="modalAberto = false" />
 </template>
 
 

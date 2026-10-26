@@ -1,5 +1,7 @@
 // Espelho do contrato de docs-camplana/informacoes_uteis/estrutura_parametros_regra.txt.
 
+import type { StatusCampanha } from '../campanha/types'
+
 export type TipoParametro = 'date_range' | 'percentage' | 'multi_select' | 'currency'
 
 export interface OpcaoParametro {
@@ -141,7 +143,8 @@ export interface SimulacaoConcluida {
 export interface CampanhaSalva {
   id: number
   nome: string
-  status: string
+  status: StatusCampanha
+  versao_atual: number | null
 }
 
 /**

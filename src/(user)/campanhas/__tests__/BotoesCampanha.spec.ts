@@ -1,99 +1,59 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BotoesCampanha from '../components/BotoesCampanha.vue'
+import ResumoCampanha from '../components/ResumoCampanha.vue'
 
 describe('BotoesCampanha', () => {
-  it('sem simulação → botão "Salvar campanha" está disabled', () => {
+  it('mostra um botão por item de `acoes`, na ordem do backend', () => {
     const wrapper = mount(BotoesCampanha, {
-      props: {
-        podeSimular: false,
-        campanhaId: null,
-        status: null,
-        nome: null,
-        versao: null,
-        salvando: false,
-      },
+      props: { acoes: ['RENOMEAR', 'SUBMETER', 'ARQUIVAR'], status: 'RASCUNHO', agindo: false },
     })
-    const btn = wrapper.find('button')
-    expect(btn.attributes('disabled')).toBeDefined()
-    expect(btn.text()).toContain('Salvar campanha')
+
+    expect(wrapper.findAll('button').map((b) => b.text())).toEqual(['Renomear', 'Submeter para aprovação', 'Arquivar'])
   })
 
-  it('com simulação, sem salvar → botão "Salvar campanha" habilitado', () => {
-    const wrapper = mount(BotoesCampanha, {
-      props: {
-        podeSimular: true,
-        campanhaId: null,
-        status: null,
-        nome: null,
-        versao: null,
-        salvando: false,
-      },
-    })
-    const btn = wrapper.find('button')
-    expect(btn.attributes('disabled')).toBeUndefined()
+  it('sem `acoes` não mostra botão (só leitura)', () => {
+    const wrapper = mount(BotoesCampanha, { props: { acoes: [], status: 'AGUARDANDO_APROVACAO', agindo: false } })
+
+    expect(wrapper.findAll('button')).toHaveLength(0)
   })
 
-  it('com campanha salva em RASCUNHO → mostra botões Simular, Submeter, Arquivar', () => {
-    const wrapper = mount(BotoesCampanha, {
-      props: {
-        podeSimular: true,
-        campanhaId: 1,
-        status: 'RASCUNHO',
-        nome: 'Black Friday',
-        versao: 1,
-        salvando: false,
-      },
-    })
-    const texto = wrapper.text()
-    expect(texto).toContain('Simular')
-    expect(texto).toContain('Submeter para aprovação')
-    expect(texto).toContain('Arquivar')
+  it('emite a ação clicada', async () => {
+    const wrapper = mount(BotoesCampanha, { props: { acoes: ['EDITAR', 'ARQUIVAR'], status: 'REPROVADA', agindo: false } })
+
+    await wrapper.findAll('button')[0]!.trigger('click')
+
+    expect(wrapper.emitted('acao')).toEqual([['EDITAR']])
   })
 
-  it('com campanha AGUARDANDO_APROVACAO → sem botões de ação', () => {
-    const wrapper = mount(BotoesCampanha, {
-      props: {
-        podeSimular: true,
-        campanhaId: 2,
-        status: 'AGUARDANDO_APROVACAO',
-        nome: 'Natal',
-        versao: 1,
-        salvando: false,
-      },
-    })
-    expect(wrapper.findAll('.campanha-acoes button')).toHaveLength(0)
+  it('desativa os botões enquanto uma ação está em andamento', () => {
+    const wrapper = mount(BotoesCampanha, { props: { acoes: ['EDITAR'], status: 'REPROVADA', agindo: true } })
+
+    expect(wrapper.find('button').attributes('disabled')).toBeDefined()
   })
 
-  it('emite "salvar" ao clicar no botão Salvar campanha', async () => {
-    const wrapper = mount(BotoesCampanha, {
-      props: {
-        podeSimular: true,
-        campanhaId: null,
-        status: null,
-        nome: null,
-        versao: null,
-        salvando: false,
-      },
-    })
+  it('APROVADA mostra "Solicitar cancelamento", que não emite nada até o A6-88', async () => {
+    const wrapper = mount(BotoesCampanha, { props: { acoes: [], status: 'APROVADA', agindo: false } })
+
     await wrapper.find('button').trigger('click')
-    expect(wrapper.emitted('salvar')).toBeTruthy()
+
+    expect(wrapper.text()).toContain('Solicitar cancelamento')
+    expect(wrapper.emitted('acao')).toBeUndefined()
+  })
+})
+
+describe('ResumoCampanha', () => {
+  it('mostra nome, status e versão da campanha da conversa', () => {
+    const wrapper = mount(ResumoCampanha, { props: { nome: 'Natal 2025', status: 'AGUARDANDO_APROVACAO', versao: 1 } })
+
+    expect(wrapper.text()).toContain('Natal 2025')
+    expect(wrapper.text()).toContain('Aguardando aprovação')
+    expect(wrapper.text()).toContain('v1')
   })
 
-  it('emite "acao" com a ação correta ao clicar', async () => {
-    const wrapper = mount(BotoesCampanha, {
-      props: {
-        podeSimular: true,
-        campanhaId: 1,
-        status: 'APROVADA',
-        nome: 'Dia das Mães',
-        versao: 1,
-        salvando: false,
-      },
-    })
-    const botoesAcao = wrapper.findAll('.campanha-acoes button')
-    expect(botoesAcao).toHaveLength(1)
-    await botoesAcao[0]!.trigger('click')
-    expect(wrapper.emitted('acao')?.[0]).toEqual(['solicitar_cancelamento'])
+  it('sem versão (nunca submetida) não mostra o número', () => {
+    const wrapper = mount(ResumoCampanha, { props: { nome: 'Natal 2025', status: 'RASCUNHO', versao: null } })
+
+    expect(wrapper.find('.resumo-campanha-versao').exists()).toBe(false)
   })
 })

@@ -1,10 +1,12 @@
-import type { CampanhaResumo, StatusCampanha } from './types'
+import type { CampanhaResumo, StatusCampanha } from '../campanha/types'
 
 export interface DescricaoStatus {
   label: string
   cor: string
   icone: string
 }
+
+export type EtiquetaVigencia = 'Vigente' | 'Encerrada'
 
 const DESCRICOES: Record<StatusCampanha, DescricaoStatus> = {
   RASCUNHO: {
@@ -34,15 +36,22 @@ const DESCRICOES: Record<StatusCampanha, DescricaoStatus> = {
   },
 }
 
+// A vigência vem do backend (contrato 5.2); a campanha FUTURA ainda não ganha etiqueta (card A6-67).
+const ETIQUETAS_DE_VIGENCIA: Record<NonNullable<CampanhaResumo['vigencia']>, EtiquetaVigencia | null> = {
+  FUTURA: null,
+  VIGENTE: 'Vigente',
+  ENCERRADA: 'Encerrada',
+}
+
 export function useStatusCampanha() {
   function descreverStatus(status: StatusCampanha): DescricaoStatus {
     return DESCRICOES[status]
   }
 
-  function etiquetaVigencia(campanha: CampanhaResumo): 'Vigente' | 'Encerrada' | null {
-    if (campanha.status !== 'APROVADA') return null
-    const fim = new Date(campanha.periodo_fim)
-    return fim >= new Date() ? 'Vigente' : 'Encerrada'
+  /** Ex.: etiquetaVigencia({ status: 'APROVADA', vigencia: 'VIGENTE' }) -> 'Vigente' */
+  function etiquetaVigencia(campanha: Pick<CampanhaResumo, 'status' | 'vigencia'>): EtiquetaVigencia | null {
+    if (campanha.status !== 'APROVADA' || campanha.vigencia === null) return null
+    return ETIQUETAS_DE_VIGENCIA[campanha.vigencia]
   }
 
   return { descreverStatus, etiquetaVigencia }

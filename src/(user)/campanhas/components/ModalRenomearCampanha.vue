@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
+// RENOMEAR das `acoes` (contrato 5.7): o nome atual vem preenchido.
 const props = defineProps<{
   aberto: boolean
+  nomeAtual: string
 }>()
 
 const emit = defineEmits<{
@@ -47,7 +49,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function trapFocus(event: KeyboardEvent) {
-  const modal = document.getElementById('modal-salvar')
+  const modal = document.getElementById('modal-renomear')
   if (!modal) return
   const focusable = modal.querySelectorAll<HTMLElement>(
     'button, input, [tabindex]:not([tabindex="-1"])',
@@ -67,6 +69,7 @@ watch(
   () => props.aberto,
   (v) => {
     if (v) {
+      nome.value = props.nomeAtual
       setTimeout(() => inputRef.value?.focus(), 50)
     }
   },
@@ -79,8 +82,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 <template>
   <Teleport to="body">
     <div v-if="aberto" class="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" @click.self="cancelar">
-      <div id="modal-salvar" class="modal">
-        <h2 id="modal-titulo" class="modal-titulo">Salvar campanha</h2>
+      <div id="modal-renomear" class="modal">
+        <h2 id="modal-titulo" class="modal-titulo">Renomear campanha</h2>
 
         <div class="modal-corpo">
           <label for="nome-campanha" class="campo-label">Nome da campanha</label>
@@ -100,7 +103,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 
         <footer class="modal-rodape">
           <button type="button" class="btn btn--secundario" @click="cancelar">Cancelar</button>
-          <button type="button" class="btn btn--primario" @click="confirmar">Salvar</button>
+          <button type="button" class="btn btn--primario" @click="confirmar">Renomear</button>
         </footer>
       </div>
     </div>

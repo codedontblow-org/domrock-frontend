@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { useStatusCampanha } from '../useStatusCampanha'
-import type { StatusCampanha } from '../types'
+import { computed } from 'vue'
+import { useStatusCampanha, type EtiquetaVigencia } from '../useStatusCampanha'
+import type { StatusCampanha } from '../../campanha/types'
 
 const props = defineProps<{
   status: StatusCampanha
-  vigencia?: 'Vigente' | 'Encerrada' | null
+  vigencia?: EtiquetaVigencia | null
 }>()
 
 const { descreverStatus } = useStatusCampanha()
-const desc = descreverStatus(props.status)
+// computed: depois de uma ação (ex.: Editar) o status muda e a etiqueta acompanha.
+const desc = computed(() => descreverStatus(props.status))
 </script>
 
 <template>

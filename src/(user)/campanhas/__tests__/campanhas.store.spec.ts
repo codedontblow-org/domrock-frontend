@@ -1,61 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { definirServicoCampanhas, useCampanhasStore } from '../stores/campanhas'
-import type { AcaoCampanha, CampanhaDetalhe, CampanhaResumo, StatusCampanha } from '../types'
-import type { ServicoCampanhas } from '../services/campanhas'
-
-function campanhaMock(sobrescrever: Partial<CampanhaResumo> = {}): CampanhaResumo {
-  return {
-    id: 1,
-    nome: 'Black Friday',
-    status: 'RASCUNHO',
-    versao_atual: 1,
-    periodo_inicio: '2025-11-24',
-    periodo_fim: '2025-11-30',
-    custo_incremental: 23736.1,
-    atualizada_em: new Date().toISOString(),
-    autor_nome: 'Você',
-    ...sobrescrever,
-  }
-}
-
-class FakeServicoCampanhas implements ServicoCampanhas {
-  lista: CampanhaResumo[] = [
-    campanhaMock({ id: 1, status: 'RASCUNHO' }),
-    campanhaMock({ id: 2, status: 'APROVADA', nome: 'Natal' }),
-    campanhaMock({ id: 3, status: 'ARQUIVADA', nome: 'Páscoa' }),
-  ]
-
-  async listar(): Promise<CampanhaResumo[]> {
-    return [...this.lista]
-  }
-
-  async obter(id: number): Promise<CampanhaDetalhe> {
-    const c = this.lista.find((x) => x.id === id)
-    if (!c) throw new Error('Não encontrada')
-    return { ...c, autor_id: 1, rule_id: 'r1', chat_id: 'c1', parametros: [], resultado_simulacao: null, versoes: [], mensagens: [] }
-  }
-
-  async salvar(_chatId: string, nome: string, _regraId: string): Promise<CampanhaResumo> {
-    const nova = campanhaMock({ id: 99, nome, status: 'RASCUNHO' })
-    this.lista.push(nova)
-    return nova
-  }
-
-  async executarAcao(id: number, acao: AcaoCampanha): Promise<CampanhaResumo> {
-    const mapaStatus: Record<AcaoCampanha, StatusCampanha> = {
-      simular: 'RASCUNHO',
-      submeter: 'AGUARDANDO_APROVACAO',
-      arquivar: 'ARQUIVADA',
-      solicitar_cancelamento: 'ARQUIVADA',
-      editar: 'RASCUNHO',
-    }
-    const idx = this.lista.findIndex((c) => c.id === id)
-    if (idx === -1) throw new Error('Não encontrada')
-    this.lista[idx] = { ...this.lista[idx]!, status: mapaStatus[acao] }
-    return this.lista[idx]!
-  }
-}
+import { erroDoBackend, FakeServicoCampanhas, resumoBlackFriday } from './fakes'
 
 describe('useCampanhasStore', () => {
   let servico: FakeServicoCampanhas
@@ -66,57 +12,75 @@ describe('useCampanhasStore', () => {
     definirServicoCampanhas(servico)
   })
 
-  it('listar carrega as campanhas', async () => {
+  it('sem filtro pede as minhas sem status: o backend já tira as arquivadas (contrato 5.4)', async () => {
     const store = useCampanhasStore()
+
     await store.listar()
-    expect(store.campanhas).toHaveLength(3)
-    expect(store.campanhas[0]?.nome).toBe('Black Friday')
+
+    expect(servico.filtrosPedidos).toEqual([undefined])
+    expect(store.campanhas).toHaveLength(1)
   })
 
-  it('filtroStatus TODOS retorna todas as campanhas', async () => {
+  it('a aba escolhida vai como filtro para o backend', async () => {
+    servico.lista = [resumoBlackFriday(), resumoBlackFriday({ id: 13, status: 'ARQUIVADA' })]
     const store = useCampanhasStore()
-    await store.listar()
-    store.filtroStatus = 'TODOS'
-    expect(store.campanhsFiltradas).toHaveLength(3)
+
+    await store.filtrar('ARQUIVADA')
+
+    expect(servico.filtrosPedidos).toEqual(['ARQUIVADA'])
+    expect(store.filtroStatus).toBe('ARQUIVADA')
+    expect(store.campanhas.map((c) => c.id)).toEqual([13])
   })
 
-  it('filtroStatus APROVADA retorna só aprovadas', async () => {
+  it('abre a campanha pelo id', async () => {
     const store = useCampanhasStore()
-    await store.listar()
-    store.filtroStatus = 'APROVADA'
-    expect(store.campanhsFiltradas).toHaveLength(1)
-    expect(store.campanhsFiltradas[0]?.nome).toBe('Natal')
+
+    await store.obter(12)
+
+    expect(store.campanhaAtual?.nome).toBe('Black Friday 2025')
+    expect(store.campanhaAtual?.acoes).toEqual(['EDITAR', 'ARQUIVAR'])
   })
 
-  it('filtroStatus ARQUIVADA filtra corretamente', async () => {
+  it('a campanha devolvida pela ação substitui a da tela', async () => {
     const store = useCampanhasStore()
-    await store.listar()
-    store.filtroStatus = 'ARQUIVADA'
-    expect(store.campanhsFiltradas).toHaveLength(1)
-    expect(store.campanhsFiltradas[0]?.nome).toBe('Páscoa')
+    await store.obter(12)
+
+    await store.agir(12, 'EDITAR')
+
+    expect(servico.acoesFeitas).toEqual([{ id: 12, acao: 'EDITAR' }])
+    expect(store.campanhaAtual?.status).toBe('RASCUNHO')
+    expect(store.campanhaAtual?.acoes).toEqual(['RENOMEAR', 'SUBMETER', 'ARQUIVAR'])
   })
 
-  it('executarAcao submeter muda o status da campanha na lista', async () => {
+  it('renomeia pelo PUT e mostra o nome novo', async () => {
     const store = useCampanhasStore()
-    await store.listar()
-    await store.executarAcao(1, 'submeter')
-    const atualizada = store.campanhas.find((c) => c.id === 1)
-    expect(atualizada?.status).toBe('AGUARDANDO_APROVACAO')
+    await store.obter(12)
+
+    await store.renomear(12, 'Black Friday 2025 - sem gerentes')
+
+    expect(servico.nomesPedidos).toEqual(['Black Friday 2025 - sem gerentes'])
+    expect(store.campanhaAtual?.nome).toBe('Black Friday 2025 - sem gerentes')
   })
 
-  it('salvar adiciona a campanha ao início da lista', async () => {
+  it('a recusa do backend vira `erro` com a mensagem dele, e a campanha da tela fica', async () => {
     const store = useCampanhasStore()
-    await store.listar()
-    const tamanhoOriginal = store.campanhas.length
-    await store.salvar('chat-1', 'Nova Campanha', 'rule-1')
-    expect(store.campanhas).toHaveLength(tamanhoOriginal + 1)
-    expect(store.campanhas[0]?.nome).toBe('Nova Campanha')
+    await store.obter(12)
+    servico.falha = erroDoBackend(409, 'Transição inválida: campanha 12 está em REPROVADA')
+
+    await store.agir(12, 'ARQUIVAR')
+
+    expect(store.erro).toBe('Transição inválida: campanha 12 está em REPROVADA')
+    expect(store.campanhaAtual?.status).toBe('REPROVADA')
+    expect(store.agindo).toBe(false)
   })
 
-  it('obter preenche campanhaAtual', async () => {
+  it('falha ao listar vira `erro`', async () => {
+    servico.falha = erroDoBackend(403, 'Sem permissão')
     const store = useCampanhasStore()
+
     await store.listar()
-    await store.obter(1)
-    expect(store.campanhaAtual?.nome).toBe('Black Friday')
+
+    expect(store.erro).toBe('Sem permissão')
+    expect(store.carregando).toBe(false)
   })
 })

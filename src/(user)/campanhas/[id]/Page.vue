@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
+import { formatarMoeda } from '../../chat/formatacao'
 import { useCampanhasStore } from '../stores/campanhas'
 import { useStatusCampanha } from '../useStatusCampanha'
+import { diaDoInstante, periodoDaCampanha, valorDoParametro } from '../formatacao'
 import EtiquetaStatus from '../components/EtiquetaStatus.vue'
 import BotoesCampanha from '../components/BotoesCampanha.vue'
-import type { AcaoCampanha } from '../types'
+import ModalRenomearCampanha from '../components/ModalRenomearCampanha.vue'
+import type { AcaoCampanha } from '../../campanha/types'
 
 const route = useRoute()
 const store = useCampanhasStore()
-const { campanhaAtual, carregando } = storeToRefs(store)
+const { campanhaAtual, carregando, agindo, erro } = storeToRefs(store)
 const { etiquetaVigencia } = useStatusCampanha()
 
 const abaAtiva = ref<'ficha' | 'conversa' | 'trilha' | 'versoes'>('ficha')
@@ -22,32 +25,27 @@ const abas: Array<{ id: 'ficha' | 'conversa' | 'trilha' | 'versoes'; rotulo: str
   { id: 'versoes', rotulo: 'Versões' },
 ]
 
-function formatarData(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
+const renomeando = ref(false)
+const simulacao = computed(() => campanhaAtual.value?.ultima_simulacao ?? null)
 
-function formatarPeriodo(inicio: string | null | undefined, fim: string | null | undefined): string {
-  if (!inicio || !fim) return '—'
-  return `${formatarData(inicio)} – ${formatarData(fim)}`
-}
-
-function formatarMoeda(valor: number | null): string {
-  if (valor === null) return '—'
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-async function executarAcao(acao: AcaoCampanha) {
+function executarAcao(acao: AcaoCampanha) {
   if (!campanhaAtual.value) return
-  await store.executarAcao(campanhaAtual.value.id, acao)
+  if (acao === 'RENOMEAR') {
+    renomeando.value = true
+    return
+  }
+  store.agir(campanhaAtual.value.id, acao)
 }
 
-onMounted(() => {
-  const id = Number(route.params.id)
-  if (!Number.isNaN(id)) store.obter(id)
-})
+async function renomear(nome: string) {
+  renomeando.value = false
+  if (campanhaAtual.value) await store.renomear(campanhaAtual.value.id, nome)
+}
+
+watch(() => route.params.id, (id) => {
+  const numero = Number(id)
+  if (Number.isInteger(numero)) store.obter(numero)
+}, { immediate: true })
 </script>
 
 <template>
@@ -74,28 +72,27 @@ onMounted(() => {
             />
             <span class="meta-autor">
               <i class="bi bi-person" aria-hidden="true" />
-              {{ campanhaAtual.autor_nome }}
+              {{ campanhaAtual.autor.nome ?? '—' }}
             </span>
             <span class="meta-periodo">
               <i class="bi bi-calendar3" aria-hidden="true" />
-              {{ formatarPeriodo(campanhaAtual.periodo_inicio, campanhaAtual.periodo_fim) }}
+              {{ periodoDaCampanha(campanhaAtual.periodo) }}
             </span>
+            <span v-if="campanhaAtual.versao_atual !== null" class="meta-periodo">v{{ campanhaAtual.versao_atual }}</span>
           </div>
         </div>
 
         <div class="header-acoes">
           <BotoesCampanha
-            :pode-simular="true"
-            :campanha-id="campanhaAtual.id"
+            :acoes="campanhaAtual.acoes"
             :status="campanhaAtual.status"
-            :nome="campanhaAtual.nome"
-            :versao="campanhaAtual.versao_atual"
-            :salvando="false"
-            @salvar="() => {}"
+            :agindo="agindo"
             @acao="executarAcao"
           />
         </div>
       </header>
+
+      <p v-if="erro" class="erro-acao" role="alert">{{ erro }}</p>
 
       <nav class="abas" role="tablist" aria-label="Seções da campanha">
         <button
@@ -113,66 +110,57 @@ onMounted(() => {
       </nav>
 
       <div class="aba-conteudo" role="tabpanel">
-        <!-- Aba: Ficha e resultado -->
+        <!-- Aba: Ficha e resultado (da última simulação concluída, contrato 5.2) -->
         <div v-if="abaAtiva === 'ficha'">
-          <section v-if="campanhaAtual.parametros.length" class="secao">
-            <h2 class="secao-titulo">Parâmetros</h2>
-            <dl class="params-lista">
-              <div v-for="p in campanhaAtual.parametros" :key="p.key" class="param-item">
-                <dt class="param-label">{{ p.label }}</dt>
-                <dd class="param-valor">{{ p.value ?? '—' }}</dd>
-              </div>
-            </dl>
-          </section>
+          <template v-if="simulacao">
+            <section class="secao">
+              <h2 class="secao-titulo">Parâmetros</h2>
+              <dl class="params-lista">
+                <div v-for="p in simulacao.regra.parametros" :key="p.key" class="param-item">
+                  <dt class="param-label">{{ p.label }}</dt>
+                  <dd class="param-valor">{{ valorDoParametro(p) }}</dd>
+                </div>
+              </dl>
+            </section>
 
-          <section v-if="campanhaAtual.resultado_simulacao" class="secao">
-            <h2 class="secao-titulo">Resultado da simulação</h2>
-            <div class="resultado-grid">
-              <div class="resultado-card">
-                <span class="card-label">Custo incremental</span>
-                <span class="card-valor">{{ formatarMoeda(campanhaAtual.resultado_simulacao.orcamento.custo_incremental) }}</span>
+            <section class="secao">
+              <h2 class="secao-titulo">Resultado da simulação</h2>
+              <div class="resultado-grid">
+                <div class="resultado-card">
+                  <span class="card-label">Custo adicional</span>
+                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.custo_incremental) }}</span>
+                </div>
+                <div class="resultado-card">
+                  <span class="card-label">Orçamento limite</span>
+                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.orcamento_limite) }}</span>
+                </div>
+                <div class="resultado-card">
+                  <span class="card-label">Folga</span>
+                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.folga) }}</span>
+                </div>
+                <div class="resultado-card">
+                  <span class="card-label">Pessoas impactadas</span>
+                  <span class="card-valor">{{ simulacao.resultado.impacto.pessoas_impactadas }}</span>
+                </div>
               </div>
-              <div class="resultado-card">
-                <span class="card-label">Orçamento limite</span>
-                <span class="card-valor">{{ formatarMoeda(campanhaAtual.resultado_simulacao.orcamento.orcamento_limite) }}</span>
-              </div>
-              <div class="resultado-card">
-                <span class="card-label">Folga</span>
-                <span class="card-valor">{{ formatarMoeda(campanhaAtual.resultado_simulacao.orcamento.folga) }}</span>
-              </div>
-              <div class="resultado-card">
-                <span class="card-label">Pessoas impactadas</span>
-                <span class="card-valor">{{ campanhaAtual.resultado_simulacao.impacto.pessoas_impactadas }}</span>
-              </div>
-            </div>
-            <p class="resultado-explicacao">{{ campanhaAtual.resultado_simulacao.explicacao }}</p>
-          </section>
+              <p class="resultado-explicacao">{{ simulacao.resultado.explicacao }}</p>
+            </section>
+          </template>
 
-          <p v-if="!campanhaAtual.parametros.length && !campanhaAtual.resultado_simulacao" class="sem-dados">
-            Nenhuma ficha ou resultado disponível.
-          </p>
+          <p v-else class="sem-dados">Nenhuma ficha ou resultado disponível.</p>
         </div>
 
-        <!-- Aba: Conversa -->
-        <div v-else-if="abaAtiva === 'conversa'" class="conversa-lista">
-          <div
-            v-for="msg in campanhaAtual.mensagens"
-            :key="msg.id"
-            class="msg-item"
-            :class="`msg-item--${msg.papel}`"
+        <!-- Aba: Conversa. A conversa gravada chega com o A6-65 (rota 3.2); até lá, o chat reabre a simulação. -->
+        <div v-else-if="abaAtiva === 'conversa'">
+          <RouterLink
+            v-if="simulacao"
+            class="link-conversa"
+            :to="{ name: 'chat', query: { simulacao: simulacao.id } }"
           >
-            <template v-if="msg.papel === 'sistema'">
-              <span class="msg-sistema-linha" aria-hidden="true" />
-              <span class="msg-sistema-texto">{{ msg.texto }}</span>
-              <span class="msg-sistema-linha" aria-hidden="true" />
-            </template>
-            <template v-else>
-              <span class="msg-papel">{{ msg.papel === 'usuario' ? 'Você' : 'Lana' }}</span>
-              <p class="msg-texto">{{ msg.texto }}</p>
-              <time class="msg-tempo" :datetime="msg.criada_em">{{ formatarData(msg.criada_em) }}</time>
-            </template>
-          </div>
-          <p v-if="!campanhaAtual.mensagens.length" class="sem-dados">Nenhuma mensagem registrada.</p>
+            <i class="bi bi-chat-left-text" aria-hidden="true" />
+            Abrir o pedido e o resultado no chat
+          </RouterLink>
+          <p v-else class="sem-dados">Nenhuma conversa registrada.</p>
         </div>
 
         <!-- Aba: Trilha -->
@@ -182,36 +170,44 @@ onMounted(() => {
 
         <!-- Aba: Versões -->
         <div v-else-if="abaAtiva === 'versoes'">
-          <div class="versoes-tabela-wrapper">
+          <div v-if="campanhaAtual.versoes.length" class="versoes-tabela-wrapper">
             <table class="versoes-tabela">
               <thead>
                 <tr>
                   <th class="th">Versão</th>
                   <th class="th">Status</th>
-                  <th class="th">Criada em</th>
+                  <th class="th">Submetida em</th>
                   <th class="th">Decidida em</th>
                   <th class="th">Justificativa</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="v in campanhaAtual.versoes" :key="v.versao">
-                  <td class="td">v{{ v.versao }}</td>
+                <tr v-for="v in campanhaAtual.versoes" :key="v.numero">
+                  <td class="td">v{{ v.numero }}</td>
                   <td class="td">
                     <EtiquetaStatus :status="v.status" />
                   </td>
-                  <td class="td">{{ formatarData(v.criada_em) }}</td>
-                  <td class="td">{{ v.decidida_em ? formatarData(v.decidida_em) : '—' }}</td>
-                  <td class="td">{{ v.justificativa ?? '—' }}</td>
+                  <td class="td">{{ diaDoInstante(v.submetida_em) }}</td>
+                  <td class="td">{{ diaDoInstante(v.decisao?.em ?? null) }}</td>
+                  <td class="td">{{ v.decisao?.justificativa ?? '—' }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <p v-else class="sem-dados">A campanha ainda não foi submetida.</p>
         </div>
       </div>
+
+      <ModalRenomearCampanha
+        :aberto="renomeando"
+        :nome-atual="campanhaAtual.nome"
+        @confirmar="renomear"
+        @cancelar="renomeando = false"
+      />
     </template>
 
-    <div v-else class="estado-vazio">
-      <p>Campanha não encontrada.</p>
+    <div v-else class="estado-vazio" :role="erro ? 'alert' : undefined">
+      <p>{{ erro ?? 'Campanha não encontrada.' }}</p>
     </div>
   </div>
 </template>
@@ -421,74 +417,29 @@ onMounted(() => {
   text-align: center;
 }
 
-.conversa-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px 0;
-}
 
-.msg-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.msg-item--usuario {
-  align-items: flex-end;
-}
-
-.msg-item--agente {
-  align-items: flex-start;
-}
-
-.msg-item--sistema {
-  flex-direction: row;
+.link-conversa {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-}
-
-.msg-papel {
-  color: var(--color-gray-txt2-dark);
+  gap: 8px;
+  color: var(--color-blue);
   font-family: var(--font-raleway);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 14px;
+  text-decoration: none;
 }
 
-.msg-texto {
-  max-width: 600px;
-  padding: 8px 12px;
+.link-conversa:hover {
+  text-decoration: underline;
+}
+
+.erro-acao {
+  margin: 0;
+  padding: 10px 14px;
   border-radius: 6px;
-  background-color: var(--color-black-bg2);
+  box-shadow: inset 3px 0 0 var(--color-red);
   color: var(--color-white-txt1);
   font-family: var(--font-raleway);
   font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.msg-item--usuario .msg-texto {
-  background-color: var(--color-blue);
-}
-
-.msg-tempo {
-  color: var(--color-gray-txt3-dark);
-  font-family: var(--font-raleway);
-  font-size: 11px;
-}
-
-.msg-sistema-linha {
-  flex: 1;
-  height: 1px;
-  background-color: rgb(255 255 255 / 10%);
-}
-
-.msg-sistema-texto {
-  color: var(--color-gray-txt2-dark);
-  font-family: var(--font-raleway);
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 .versoes-tabela-wrapper {
