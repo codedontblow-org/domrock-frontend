@@ -114,7 +114,7 @@ export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): Ca
   const pct = valorDe<number>(regra, 'pct_acrescimo')
   const cargos = valorDe<string[]>(regra, 'cargos_alvo') ?? []
   const marcas = valorDe<string[]>(regra, 'marcas_alvo') ?? []
-  const { orcamento, totais, impacto, meta } = resultado
+  const { orcamento, totais } = resultado
   const percentual = pct === null ? null : `+${formatarPercentual(pct)}`
 
   const acrescimos: ItemDetalhe[] = [
@@ -128,8 +128,9 @@ export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): Ca
   return {
     ...cartao,
     duracaoDias: cartao.duracaoDias ?? duracaoEmDias(valorDe<Periodo>(regra, 'periodo')),
-    custo: formatarMoeda(orcamento.custo_incremental),
-    custoDetalhe: usoDoOrcamento(orcamento.custo_incremental, orcamento.orcamento_limite),
+    custo: formatarMoeda(totais.diferenca),
+    // Sem orçamento (A6-72), não há uso do orçamento para mostrar abaixo do custo.
+    custoDetalhe: orcamento ? usoDoOrcamento(orcamento.custo_incremental, orcamento.orcamento_limite) : null,
     percentual,
     alcance: descreverAlcance(cargos, marcas),
     detalhe: 'pronto',

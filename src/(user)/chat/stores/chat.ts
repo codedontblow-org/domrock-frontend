@@ -98,7 +98,8 @@ export const useChatStore = defineStore('chat', () => {
       })
       simulacaoId.value = id
       regraSimulada.value = regraEnviada
-      cabeNoOrcamento.value = resultado.orcamento.cabe_no_orcamento
+      // Sem orçamento na ficha (A6-72) não há o que estourar: vai para aprovação sem o aviso.
+      cabeNoOrcamento.value = resultado.orcamento?.cabe_no_orcamento ?? true
       adicionar('resultado', resultado.explicacao, { resultado })
     } catch (erro) {
       adicionar('erro', descreverFalha(erro))

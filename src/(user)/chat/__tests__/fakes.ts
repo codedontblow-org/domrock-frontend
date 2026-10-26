@@ -45,7 +45,7 @@ export function resultadoBlackFriday(cabe = true): ResultadoSimulacao {
     orcamento: cabe
       ? { orcamento_limite: 30000, custo_incremental: 23736.17, folga: 6263.83, cabe_no_orcamento: true }
       : { orcamento_limite: 20000, custo_incremental: 23736.17, folga: -3736.17, cabe_no_orcamento: false },
-    meta: { meta_vendas: 2000000, vendas_periodo: 2406125.93, pct_atingimento: 120.31, atingida: true },
+    meta: metaDaBlackFriday(2_000_000),
     impacto: { pessoas_impactadas: 312, pessoas_total: 548, media_por_pessoa: 76.08, maior_acrescimo: 402.5 },
     maiores_lojas: [{ codigo: '13', baseline: 1, simulado: 2, diferenca: 2140.1 }],
     cenarios: [
@@ -63,6 +63,39 @@ export function resultadoBlackFriday(cabe = true): ResultadoSimulacao {
     ressalvas: ['Simulação sobre vendas que já aconteceram.'],
     codigo: 'def aplicar_regra(bases, apuracao_base, competencias): ...',
     origem_codigo: 'llm', tentativas: 1, explicacao: 'Cabe no **orçamento**.',
+  }
+}
+
+const VENDA_BLACK_FRIDAY = 2406125.93
+
+function metaDaBlackFriday(metaVendas: number): ResultadoSimulacao['meta'] {
+  const pct = Math.round((VENDA_BLACK_FRIDAY / metaVendas) * 10000) / 100
+  const diferenca = Math.round((VENDA_BLACK_FRIDAY - metaVendas) * 100) / 100
+  return { meta_vendas: metaVendas, vendas_periodo: VENDA_BLACK_FRIDAY, pct_atingimento: pct, atingida: pct >= 100, diferenca }
+}
+
+export type CasoDoCriterio = 'sem_orcamento' | 'orcamento_20_mil' | 'meta_3_milhoes'
+
+/** Os três casos dos critérios do A6-72: Black Friday +1%, custo de R$ 23.736,10. */
+export function resultadoDoCriterio(caso: CasoDoCriterio): ResultadoSimulacao {
+  const comOrcamento = caso === 'orcamento_20_mil'
+  const meta = metaDaBlackFriday(caso === 'meta_3_milhoes' ? 3_000_000 : 2_000_000)
+  const semMarca = {
+    tipo: 'sem_marca' as const, titulo: 'Sem a marca Preto', pct_acrescimo: 1, marcas_alvo: ['20', '30', '40', '50', '60'],
+    custo_incremental: 4398.28, economia: 19337.82, cabe_no_orcamento: comOrcamento ? true : null,
+  }
+  const maiorQueCabe = {
+    tipo: 'ajustar_acrescimo' as const, titulo: 'Acréscimo menor, dentro do orçamento', pct_acrescimo: 0.84,
+    marcas_alvo: ['10', '20', '30', '40', '50', '60'], custo_incremental: 19938.34, economia: 3797.76, cabe_no_orcamento: true,
+  }
+  return {
+    ...resultadoBlackFriday(),
+    totais: { baseline: 480263.24, simulado: 503999.34, diferenca: 23736.1, diferenca_pct: 4.94 },
+    meta,
+    orcamento: comOrcamento
+      ? { orcamento_limite: 20000, custo_incremental: 23736.1, folga: -3736.1, cabe_no_orcamento: false }
+      : null,
+    cenarios: comOrcamento ? [maiorQueCabe, semMarca] : [semMarca],
   }
 }
 

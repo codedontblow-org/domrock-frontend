@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { definirServicoCampanha, useChatStore } from '../stores/chat'
-import { FakeServicoCampanha, regraBlackFriday, resultadoBlackFriday } from './fakes'
+import { FakeServicoCampanha, regraBlackFriday, resultadoBlackFriday, resultadoDoCriterio } from './fakes'
 
 function erroHttp(status: number, data: unknown): AxiosError {
   const config = { headers: new AxiosHeaders() }
@@ -181,6 +181,28 @@ describe('enviar para aprovação', () => {
 
     expect(servico.salvamentos).toHaveLength(1)
     expect(chat.etapaAprovacao).toBe('enviada')
+  })
+
+  it('sem orçamento, a simulação fica pronta para enviar, sem aviso de orçamento (A6-72)', async () => {
+    servico.resultado = resultadoDoCriterio('sem_orcamento')
+    const chat = useChatStore()
+    await chat.enviar('Natal')
+
+    await chat.simular()
+
+    expect(chat.etapaAprovacao).toBe('pronta')
+  })
+
+  it('orçamento opcional vazio não conta como campo pendente', async () => {
+    const regra = regraBlackFriday({ orcamento_limite: null })
+    for (const p of regra.parametros) p.required = p.key !== 'orcamento_limite'
+    servico.respostaChat = { chat_id: 'c', response: 'Anotado!', regra }
+    const chat = useChatStore()
+
+    await chat.enviar('Natal')
+
+    expect(chat.camposVazios).toEqual([])
+    expect(chat.podeSimular).toBe(true)
   })
 
   it('tira o aviso de orçamento quando a nova simulação cabe', async () => {

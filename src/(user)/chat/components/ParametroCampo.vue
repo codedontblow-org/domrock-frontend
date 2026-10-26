@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import BotaoIcone from '@/components/BotaoIcone.vue'
 import { estaVazio } from '../stores/chat'
 import { nomeDaOpcao, ROTULOS_CURTOS_PARAMETRO } from '../rotulos'
 import type { ParametroRegra, Periodo, ValorParametro } from '../types'
@@ -9,8 +10,9 @@ import CampoPeriodo from './campos/CampoPeriodo.vue'
 
 const TODAS = 'ALL'
 
-const props = defineProps<{ parametro: ParametroRegra }>()
-const emit = defineEmits<{ alterar: [valor: ValorParametro] }>()
+// `removivel`: campo opcional que entrou por "Extras" (A6-72); a lixeira tira o valor e o campo.
+const props = defineProps<{ parametro: ParametroRegra; removivel?: boolean }>()
+const emit = defineEmits<{ alterar: [valor: ValorParametro]; remover: [] }>()
 
 const faltando = computed(() => props.parametro.required && estaVazio(props.parametro.value))
 const selecionados = computed(() => (props.parametro.value as string[] | null) ?? [])
@@ -46,8 +48,12 @@ function alternarOpcao(id: string): void {
     <CampoPercentual v-else-if="parametro.type === 'percentage'" :model-value="numero" :faltando="faltando"
       :id-campo="idCampo" :rotulo="parametro.label" @update:model-value="emit('alterar', $event)" />
 
-    <CampoMoeda v-else :model-value="numero" :faltando="faltando" :id-campo="idCampo" :rotulo="parametro.label"
-      @update:model-value="emit('alterar', $event)" />
+    <div v-else class="campo-moeda-linha">
+      <CampoMoeda class="campo-moeda" :model-value="numero" :faltando="faltando" :id-campo="idCampo"
+        :rotulo="parametro.label" @update:model-value="emit('alterar', $event)" />
+      <BotaoIcone v-if="removivel" icone="bi bi-trash" :dica="`Tirar o ${rotulo.toLowerCase()}`"
+        @click="emit('remover')" />
+    </div>
   </div>
 </template>
 
@@ -85,6 +91,16 @@ function alternarOpcao(id: string): void {
 .campo-pendente {
   font-size: 12px;
   font-weight: 400;
+}
+
+.campo-moeda-linha {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.campo-moeda {
+  flex: 1;
 }
 
 .campo-opcoes {

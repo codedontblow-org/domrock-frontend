@@ -77,17 +77,43 @@ export interface CenarioAlternativo {
   marcas_alvo: string[]
   custo_incremental: number
   economia: number
+  /** null quando a ficha não tem orçamento (A6-72). */
+  cabe_no_orcamento: boolean | null
+}
+
+export interface TotaisSimulacao {
+  baseline: number
+  simulado: number
+  diferenca: number
+  diferenca_pct: number
+}
+
+export interface VereditoOrcamento {
+  orcamento_limite: number
+  custo_incremental: number
+  folga: number
   cabe_no_orcamento: boolean
+}
+
+export interface AtingimentoMeta {
+  meta_vendas: number
+  vendas_periodo: number
+  pct_atingimento: number
+  atingida: boolean
+  /** Venda do período − meta (A6-72). Ausente nas simulações anteriores a ele. */
+  diferenca?: number
 }
 
 export interface ResultadoSimulacao {
   rule_id: string
   competencias: string[]
-  totais: { baseline: number; simulado: number; diferenca: number; diferenca_pct: number }
+  totais: TotaisSimulacao
   por_marca: QuebraDimensao[]
   por_cargo: QuebraDimensao[]
-  orcamento: { orcamento_limite: number; custo_incremental: number; folga: number; cabe_no_orcamento: boolean }
-  meta: { meta_vendas: number; vendas_periodo: number; pct_atingimento: number; atingida: boolean }
+  /** null quando a ficha não tem orçamento (A6-72: orçamento é opcional). */
+  orcamento: VereditoOrcamento | null
+  meta: AtingimentoMeta
+  // A Lana também manda `retorno` (contrato 2.3); a tela só o usa na Sprint 3 (decisão do PO, 26/10).
   impacto: ImpactoPessoas
   maiores_lojas: QuebraDimensao[]
   cenarios: CenarioAlternativo[]

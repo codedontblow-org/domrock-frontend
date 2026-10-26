@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useId } from 'vue'
 import { formatarMoeda, formatarPercentual } from '../formatacao'
 import type { CenarioAlternativo } from '../types'
 
-defineProps<{ cenarios: CenarioAlternativo[] }>()
+// Sem `titulo`, a lista entra direto num bloco que já tem título (o maior % que cabe, no Orçamento).
+defineProps<{ cenarios: CenarioAlternativo[]; titulo?: string }>()
 const emit = defineEmits<{ aplicar: [cenario: CenarioAlternativo] }>()
+const idTitulo = useId()
 
 function efeito(cenario: CenarioAlternativo): string {
   if (cenario.economia > 0) return `${formatarMoeda(cenario.economia)} a menos`
@@ -13,8 +16,9 @@ function efeito(cenario: CenarioAlternativo): string {
 </script>
 
 <template>
-  <section v-if="cenarios.length" class="cenarios" aria-labelledby="cenarios-titulo">
-    <h3 id="cenarios-titulo" class="cenarios-titulo">Outros cenários, já simulados</h3>
+  <section v-if="cenarios.length" class="cenarios" :class="{ 'cenarios--sem-titulo': !titulo }"
+    :aria-labelledby="titulo ? idTitulo : undefined" :aria-label="titulo ? undefined : 'Cenários'">
+    <h3 v-if="titulo" :id="idTitulo" class="cenarios-titulo">{{ titulo }}</h3>
     <ul class="cenarios-lista">
       <li v-for="cenario in cenarios" :key="cenario.tipo" class="cenario">
         <div class="cenario-texto">
@@ -25,7 +29,8 @@ function efeito(cenario: CenarioAlternativo): string {
         </div>
         <div class="cenario-custo">
           <span class="cenario-valor">{{ formatarMoeda(cenario.custo_incremental) }}</span>
-          <span class="cenario-situacao" :class="cenario.cabe_no_orcamento ? 'positivo' : 'negativo'">
+          <span v-if="cenario.cabe_no_orcamento !== null" class="cenario-situacao"
+            :class="cenario.cabe_no_orcamento ? 'positivo' : 'negativo'">
             {{ cenario.cabe_no_orcamento ? 'Cabe' : 'Não cabe' }}
           </span>
         </div>
@@ -41,6 +46,11 @@ function efeito(cenario: CenarioAlternativo): string {
 <style scoped>
 .cenarios {
   margin-top: 24px;
+}
+
+.cenarios--sem-titulo,
+.cenarios--sem-titulo .cenarios-lista {
+  margin-top: 0;
 }
 
 .cenarios-titulo {
