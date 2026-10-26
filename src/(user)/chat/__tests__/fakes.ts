@@ -1,7 +1,8 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import type { ServicoCampanha } from '../services/campanha'
 import type {
-  FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento, SimulacaoCriada,
+  CampanhaSalva, FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento,
+  SimulacaoConcluida, SimulacaoCriada,
 } from '../types'
 
 export function regraBlackFriday(sobrescrever: Partial<Record<string, unknown>> = {}): RegraCampanha {
@@ -76,6 +77,12 @@ export class FakeServicoCampanha implements ServicoCampanha {
   etapas: string[] = []
   /** Com true, a simulação fica rodando até o teste chamar liberarSimulacao(). */
   segurarSimulacao = false
+  /** Id do próximo job de simulação; cada simulação soma 1. */
+  proximaSimulacaoId = 345
+  salvamentos: Array<{ chatId: string; simulacaoId: number; nome: string }> = []
+  submissoes: number[] = []
+  /** Falha do próximo submeter (só dele), para testar a nova tentativa. */
+  falhaSubmeter: unknown = null
   private liberar: (() => void) | null = null
 
   async conversar(chatId: string, mensagem: string, regra: RegraCampanha | null): Promise<RespostaChat> {
@@ -84,13 +91,32 @@ export class FakeServicoCampanha implements ServicoCampanha {
     return this.respostaChat
   }
 
-  async simular(_chatId: string, regra: RegraCampanha, aoMudarEtapa: (etapa: string) => void): Promise<ResultadoSimulacao> {
+  async simular(_chatId: string, regra: RegraCampanha, aoMudarEtapa: (etapa: string) => void): Promise<SimulacaoConcluida> {
     // JSON e não structuredClone: a regra chega como Proxy reativo do Vue.
     this.simulacoes.push(JSON.parse(JSON.stringify(regra)) as RegraCampanha)
     this.etapas.forEach((etapa) => aoMudarEtapa(etapa))
     if (this.segurarSimulacao) await new Promise<void>((resolve) => { this.liberar = resolve })
     if (this.falha) throw this.falha
-    return this.resultado
+    return { id: this.proximaSimulacaoId++, resultado: this.resultado }
+  }
+
+  async buscarSimulacao(id: number): Promise<SimulacaoAndamento> {
+    if (this.falha) throw this.falha
+    return { ...jobConcluido(), id, chat_id: 'chat-da-gabriela' }
+  }
+
+  async salvarCampanha(chatId: string, simulacaoId: number, nome: string): Promise<CampanhaSalva> {
+    this.salvamentos.push({ chatId, simulacaoId, nome })
+    if (this.falha) throw this.falha
+    return { id: 12, nome, status: 'RASCUNHO' }
+  }
+
+  async submeter(campanhaId: number): Promise<CampanhaSalva> {
+    this.submissoes.push(campanhaId)
+    const falha = this.falhaSubmeter
+    this.falhaSubmeter = null
+    if (falha) throw falha
+    return { id: campanhaId, nome: 'Natal 2025', status: 'AGUARDANDO_APROVACAO' }
   }
 
   liberarSimulacao(): void {

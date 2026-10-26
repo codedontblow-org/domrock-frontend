@@ -2,7 +2,9 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
-import type { CenarioAlternativo, MensagemChat, PapelMensagem, RegraCampanha, ValorParametro } from '../types'
+import type {
+  CenarioAlternativo, EtapaAprovacao, MensagemChat, PapelMensagem, RegraCampanha, ValorParametro,
+} from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
 
@@ -23,12 +25,32 @@ export const useChatStore = defineStore('chat', () => {
   const simulando = ref(false)
   /** Etapa do job que o backend informa ("Na fila", "Simulando"); null fora da simulação. */
   const etapaSimulacao = ref<string | null>(null)
+  /** Última simulação concluída e a regra que ela usou (JSON), para saber se o painel mudou depois. */
+  const simulacaoId = ref<number | null>(null)
+  const regraSimulada = ref<string | null>(null)
+  const cabeNoOrcamento = ref(false)
+  /** Conversa reaberta pelo painel de aprovação: só para consulta, não simula nem envia. */
+  const somenteLeitura = ref(false)
+  /** Campanha salva desta conversa: se o submeter falhar, a nova tentativa não salva de novo. */
+  const campanhaId = ref<number | null>(null)
+  const enviandoAprovacao = ref(false)
+  const enviadaParaAprovacao = ref(false)
 
   const camposVazios = computed(() =>
     (regra.value?.parametros ?? []).filter((p) => p.required && estaVazio(p.value)).map((p) => p.key),
   )
-  const ocupado = computed(() => aguardandoLana.value || simulando.value)
+  const ocupado = computed(() =>
+    aguardandoLana.value || simulando.value || enviandoAprovacao.value || somenteLeitura.value,
+  )
   const podeSimular = computed(() => regra.value !== null && camposVazios.value.length === 0 && !ocupado.value)
+  const etapaAprovacao = computed<EtapaAprovacao>(() => {
+    if (somenteLeitura.value) return 'somente_leitura'
+    if (enviadaParaAprovacao.value) return 'enviada'
+    if (enviandoAprovacao.value) return 'enviando'
+    if (simulacaoId.value === null) return 'sem_simulacao'
+    if (JSON.stringify(regra.value) !== regraSimulada.value) return 'desatualizada'
+    return cabeNoOrcamento.value ? 'pronta' : 'fora_do_orcamento'
+  })
 
   function adicionar(papel: PapelMensagem, texto: string, extras: Partial<MensagemChat> = {}): void {
     mensagens.value.push({ id: mensagens.value.length + 1, papel, texto, ...extras })
@@ -51,13 +73,14 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function atualizarParametro(key: string, valor: ValorParametro): void {
+    if (somenteLeitura.value) return
     const parametro = regra.value?.parametros.find((p) => p.key === key)
     if (parametro) parametro.value = valor
   }
 
   /** Leva o cenário calculado ao painel; a simulação continua sendo decisão do usuário. */
   function aplicarCenario(cenario: CenarioAlternativo): void {
-    if (!regra.value) return
+    if (!regra.value || somenteLeitura.value) return
     atualizarParametro('pct_acrescimo', cenario.pct_acrescimo)
     atualizarParametro('marcas_alvo', [...cenario.marcas_alvo])
     adicionar('agente', `Coloquei no painel o cenário "${cenario.titulo}". Confira e clique em Simular campanha.`)
@@ -66,10 +89,14 @@ export const useChatStore = defineStore('chat', () => {
   async function simular(): Promise<void> {
     if (!regra.value || !podeSimular.value) return
     simulando.value = true
+    const regraEnviada = JSON.stringify(regra.value)
     try {
-      const resultado = await servicoCampanha.simular(chatId.value, regra.value, (etapa) => {
+      const { id, resultado } = await servicoCampanha.simular(chatId.value, regra.value, (etapa) => {
         etapaSimulacao.value = etapa
       })
+      simulacaoId.value = id
+      regraSimulada.value = regraEnviada
+      cabeNoOrcamento.value = resultado.orcamento.cabe_no_orcamento
       adicionar('resultado', resultado.explicacao, { resultado })
     } catch (erro) {
       adicionar('erro', descreverFalha(erro))
@@ -79,9 +106,61 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  /** Salva a conversa como campanha e a submete: ela passa a aparecer em "Aguardando Aprovação". */
+  async function enviarParaAprovacao(nome: string): Promise<void> {
+    if (etapaAprovacao.value !== 'pronta' || ocupado.value || simulacaoId.value === null || !nome.trim()) return
+    enviandoAprovacao.value = true
+    try {
+      campanhaId.value ??= (await servicoCampanha.salvarCampanha(chatId.value, simulacaoId.value, nome.trim())).id
+      await servicoCampanha.submeter(campanhaId.value)
+      enviadaParaAprovacao.value = true
+      adicionar('agente', `Enviei "${nome.trim()}" para aprovação. Ela aparece em Campanhas, na aba Aguardando Aprovação.`)
+    } catch (erro) {
+      adicionar('erro', descreverFalha(erro))
+    } finally {
+      enviandoAprovacao.value = false
+    }
+  }
+
+  /** Começa uma conversa nova, sem nada da anterior. */
+  function novaConversa(): void {
+    chatId.value = novoChatId()
+    mensagens.value = []
+    regra.value = null
+    simulacaoId.value = null
+    regraSimulada.value = null
+    cabeNoOrcamento.value = false
+    campanhaId.value = null
+    enviadaParaAprovacao.value = false
+    somenteLeitura.value = false
+  }
+
+  /**
+   * Reabre, só para consulta, a conversa que gerou a simulação. O backend não guarda as mensagens
+   * do chat: o que volta é o pedido original, a ficha e o resultado que estão na simulação.
+   */
+  async function abrirSimulacao(id: number): Promise<void> {
+    novaConversa()
+    somenteLeitura.value = true
+    try {
+      const simulacao = await servicoCampanha.buscarSimulacao(id)
+      chatId.value = simulacao.chat_id
+      regra.value = simulacao.ficha
+      if (simulacao.ficha.raw_prompt) adicionar('usuario', simulacao.ficha.raw_prompt)
+      if (simulacao.resultado) {
+        adicionar('resultado', simulacao.resultado.explicacao, { resultado: simulacao.resultado })
+      } else if (simulacao.erro) {
+        adicionar('erro', simulacao.erro.mensagem)
+      }
+    } catch (erro) {
+      adicionar('erro', descreverFalha(erro))
+    }
+  }
+
   return {
     chatId, mensagens, regra, aguardandoLana, simulando, etapaSimulacao, ocupado, camposVazios, podeSimular,
-    enviar, atualizarParametro, aplicarCenario, simular,
+    etapaAprovacao, somenteLeitura, enviar, atualizarParametro, aplicarCenario, simular, enviarParaAprovacao,
+    novaConversa, abrirSimulacao,
   }
 })
 

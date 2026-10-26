@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
 import { usuarioLogado } from '@/services/auth'
 import { saudacao } from './formatacao'
 import Input from './components/Input.vue';
@@ -10,8 +11,21 @@ import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import { useChatStore } from './stores/chat'
 
 const chat = useChatStore()
-const { mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular } = storeToRefs(chat)
+const {
+  mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular, etapaAprovacao, ocupado,
+  somenteLeitura,
+} = storeToRefs(chat)
+const rota = useRoute()
+
+
+watch(() => rota.query.simulacao, (simulacao) => {
+  const id = Number(simulacao)
+  if (simulacao && Number.isInteger(id)) chat.abrirSimulacao(id)
+  else if (somenteLeitura.value) chat.novaConversa()
+}, { immediate: true })
 const fimDaConversa = ref<HTMLElement | null>(null)
+// Saudação com o primeiro nome de quem está logado (salvo no login).
+const primeiroNome = (JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nome ?? '').trim().split(/\s+/)[0]
 // Recolher a ficha dá a largura toda ao chat (útil para ler o resultado da simulação).
 const fichaRecolhida = ref(false)
 const statusFicha = computed(() => {
@@ -20,9 +34,10 @@ const statusFicha = computed(() => {
   return faltam === 1 ? '1 campo pendente' : `${faltam} campos pendentes`
 })
 // Depois da primeira troca, o convite inicial some: a conversa já diz o que fazer.
-const placeholderDoCampo = computed(() =>
-  mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana',
-)
+const placeholderDoCampo = computed(() => {
+  if (somenteLeitura.value) return 'Conversa aberta só para consulta'
+  return mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana'
+})
 const textoSaudacao = saudacao(usuarioLogado()?.nome)
 
 // Mantém a última mensagem (ou o resultado) visível quando algo novo chega.
@@ -38,7 +53,7 @@ watch(() => mensagens.value.length, async () => {
     :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
     <div class="conversa">
       <div v-if="mensagens.length === 0" class="welcome">
-        <h1>{{ textoSaudacao }}</h1>
+        <h1>{{ primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!' }}</h1>
         <p>O que você tem em mente hoje?</p>
       </div>
 
@@ -57,7 +72,7 @@ watch(() => mensagens.value.length, async () => {
       </div>
 
       <div class="chat-input">
-        <Input :ocupado="aguardandoLana || simulando" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
+        <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
       </div>
     </div>
 
@@ -69,8 +84,11 @@ watch(() => mensagens.value.length, async () => {
           :campos-vazios="camposVazios"
           :pode-simular="podeSimular"
           :simulando="simulando"
+          :aprovacao="etapaAprovacao"
+          :ocupado="ocupado"
           @alterar="chat.atualizarParametro"
           @simular="chat.simular"
+          @enviar-aprovacao="chat.enviarParaAprovacao"
           @recolher="fichaRecolhida = true"
         />
       </div>

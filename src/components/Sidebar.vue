@@ -2,6 +2,8 @@
 import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
 import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
+import { useRouter } from 'vue-router'
+
 import { encerrarSessao } from '@/services/auth'
 
 // Abaixo desta largura a barra começa recolhida e, aberta, fica por cima do conteúdo.
@@ -43,15 +45,15 @@ const menuItems = computed<MenuItem[]> (() => {
 
     return [
       //pluscircle  
-      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle' },
+      { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle', rota: '/ '},
       //piggybank
-      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank' },
+      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: '/campanha' },
       //calendar4event
-      { id: 'agendado', label: 'Agendado', icon: 'bi bi-calendar4-event' },
+      { id: 'vigente', label: 'Vigente', icon: 'bi bi-calendar4-event', rota: '/vigente' },
       //clipboard
-      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard' },
+      { id: 'relatorios', label: 'Relatórios', icon: 'bi bi-clipboard', rota: '/relatorios' },
       //gear
-      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear' }
+      { id: 'configuracoes', label: 'Configurações', icon: 'bi bi-gear', rota: '/configuracoes' }
     ]
 })
 
@@ -69,11 +71,14 @@ const user = ref<User>({
 })
 
 const activeItem = ref<string>('nova-campanha')
+const router = useRouter()
 
-function selectItem(id: string): void {
-  activeItem.value = id
+function selectItem(item: MenuItem): void {
+  activeItem.value = item.id
+  if (item.rota) router.push(item.rota)
   if (isMobile.value) isCollapsed.value = true
 }
+
 </script>
 
 <template>
@@ -108,7 +113,7 @@ function selectItem(id: string): void {
         :key="item.id"
         class="menu-item"
         :class="{ active: activeItem === item.id }"
-        @click="selectItem(item.id)"
+        @click="selectItem(item)"
       >
         <i :class="[item.icon, 'menu-icon']"></i>
         <span class="menu-label">{{ item.label }}</span>

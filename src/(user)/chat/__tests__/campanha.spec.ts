@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { describe, expect, it } from 'vitest'
 import { criarServicoCampanha, descreverFalha } from '../services/campanha'
 import {
@@ -18,8 +19,9 @@ describe('simulação como job (A6-66, contrato 4.1 e 4.2)', () => {
     const etapas: string[] = []
     const servico = criarServicoCampanha(backend.http(), espera.esperar)
 
-    const resultado = await servico.simular('c1', regraBlackFriday(), (etapa) => etapas.push(etapa))
+    const { id, resultado } = await servico.simular('c1', regraBlackFriday(), (etapa) => etapas.push(etapa))
 
+    expect(id).toBe(345)
     expect(resultado.totais.diferenca).toBe(23736.17)
     expect(etapas).toEqual(['Na fila', 'Simulando', 'Concluída'])
     expect(espera.esperas).toEqual([2000, 2000])
@@ -47,5 +49,28 @@ describe('simulação como job (A6-66, contrato 4.1 e 4.2)', () => {
     const erro = await falhaDe(servico.simular('c1', regraBlackFriday(), () => {}))
 
     expect(descreverFalha(erro)).toBe('Revise a campanha: periodo: obrigatório')
+  })
+})
+
+describe('salvar e submeter a campanha (contrato 5.3)', () => {
+  it('salva com a simulação da conversa e submete pelo id da campanha', async () => {
+    const pedidos: Array<{ url: string; corpo: unknown }> = []
+    const http = axios.create({
+      adapter: async (config) => {
+        pedidos.push({ url: config.url ?? '', corpo: config.data ? JSON.parse(config.data as string) : undefined })
+        const status = config.url === '/api/campanhas' ? 'RASCUNHO' : 'AGUARDANDO_APROVACAO'
+        return { status: 200, statusText: '', headers: {}, config, data: { id: 12, nome: 'Natal 2025', status } }
+      },
+    })
+    const servico = criarServicoCampanha(http)
+
+    const salva = await servico.salvarCampanha('c1', 345, 'Natal 2025')
+    const submetida = await servico.submeter(salva.id)
+
+    expect(pedidos).toEqual([
+      { url: '/api/campanhas', corpo: { nome: 'Natal 2025', chat_id: 'c1', simulacao_id: 345 } },
+      { url: '/api/campanhas/12/submeter', corpo: undefined },
+    ])
+    expect(submetida.status).toBe('AGUARDANDO_APROVACAO')
   })
 })

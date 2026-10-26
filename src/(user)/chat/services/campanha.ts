@@ -1,6 +1,6 @@
 import { isAxiosError, type AxiosInstance } from 'axios'
 import type {
-  FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento, SimulacaoCriada,
+  CampanhaSalva, FalhaSimulacao, RegraCampanha, RespostaChat, SimulacaoAndamento, SimulacaoConcluida, SimulacaoCriada,
 } from '../types'
 
 /** O contrato 4 combina a consulta do status a cada 2 segundos. */
@@ -29,12 +29,12 @@ export function criarServicoCampanha(http: AxiosInstance, esperar: (ms: number) 
    * Sem limite de consultas: o backend garante que nenhum job fica RODANDO para sempre (vira ERRO
    * no read-timeout de 3 min e na subida do servidor, contrato 4).
    */
-  async function acompanhar(id: number, aoMudarEtapa: (etapa: string) => void): Promise<ResultadoSimulacao> {
+  async function acompanhar(id: number, aoMudarEtapa: (etapa: string) => void): Promise<SimulacaoConcluida> {
     for (;;) {
       await esperar(INTERVALO_CONSULTA_MS)
       const { data } = await http.get<SimulacaoAndamento>(`/api/simulacoes/${id}`)
       aoMudarEtapa(data.etapa)
-      if (data.status === 'CONCLUIDA') return data.resultado
+      if (data.status === 'CONCLUIDA') return { id, resultado: data.resultado }
       if (data.status === 'ERRO') throw new SimulacaoTerminouEmErro(data.erro)
     }
   }
@@ -47,10 +47,28 @@ export function criarServicoCampanha(http: AxiosInstance, esperar: (ms: number) 
     },
 
     /** Pede o job (202), avisa cada etapa e devolve o resultado quando ele conclui (A6-66). */
-    async simular(chatId: string, regra: RegraCampanha, aoMudarEtapa: (etapa: string) => void): Promise<ResultadoSimulacao> {
+    async simular(chatId: string, regra: RegraCampanha, aoMudarEtapa: (etapa: string) => void): Promise<SimulacaoConcluida> {
       const { data } = await http.post<SimulacaoCriada>('/api/simulacoes', { chat_id: chatId, regra })
       aoMudarEtapa(data.etapa)
       return acompanhar(data.id, aoMudarEtapa)
+    },
+
+    /** Uma simulação já feita, com a conversa (`chat_id`), a ficha e o resultado (contrato 4.2). */
+    async buscarSimulacao(id: number): Promise<SimulacaoAndamento> {
+      const { data } = await http.get<SimulacaoAndamento>(`/api/simulacoes/${id}`)
+      return data
+    },
+
+    /** Salva a conversa simulada como campanha em RASCUNHO (contrato 5.3). Uma conversa, uma campanha. */
+    async salvarCampanha(chatId: string, simulacaoId: number, nome: string): Promise<CampanhaSalva> {
+      const { data } = await http.post<CampanhaSalva>('/api/campanhas', { nome, chat_id: chatId, simulacao_id: simulacaoId })
+      return data
+    },
+
+    /** RASCUNHO -> AGUARDANDO_APROVACAO: o backend congela a última simulação concluída numa versão. */
+    async submeter(campanhaId: number): Promise<CampanhaSalva> {
+      const { data } = await http.post<CampanhaSalva>(`/api/campanhas/${campanhaId}/submeter`)
+      return data
     },
   }
 }
