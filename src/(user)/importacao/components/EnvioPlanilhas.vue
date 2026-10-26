@@ -33,7 +33,8 @@ const emit = defineEmits<{ escolher: [arquivos: File[]]; remover: [nome: string]
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <p class="flex items-start gap-2 font-label text-[14px] text-gray-txt3-dark">
         <i class="bi bi-info-circle text-[16px] leading-4" aria-hidden="true"></i>
-        RH e Vendas são obrigatórias em cada mês; a Comissão é opcional. Vários meses vão um depois do outro.
+        RH e Vendas são obrigatórias em cada mês; a Comissão é opcional e também pode ir sozinha. Vários meses vão um
+        depois do outro.
       </p>
       <BotaoTexto :disabled="!props.podeImportar" @click="emit('importar')">Importar</BotaoTexto>
     </div>

@@ -125,6 +125,24 @@ describe('tela "Importar base do mês" (A6-79)', () => {
     expect(router.currentRoute.value.fullPath).toBe('/importar/1')
   })
 
+  it('a Comissão sozinha pode ir: a confirmação fala dos percentuais e o envio leva só ela', async () => {
+    backend.programar(1, job(1, 'CONCLUIDO', { competencia: null, totais: { RH: 0, VENDAS: 0, COMISSAO: 30 } }))
+    const tela = await abrirTela()
+    await escolher(tela, 'BASE_COMMISS_FINAL.xlsx')
+
+    await botao(tela, 'Importar').trigger('click')
+    const modal = tela.find('[role="dialog"]')
+    expect(modal.text()).toContain('planilha de Comissão certa')
+    expect(modal.text()).toContain('passam a valer nas próximas simulações')
+    expect(modal.text()).not.toContain('competência não pode ser enviada de novo')
+
+    await botao(modal, 'Importar').trigger('click')
+    await flushPromises()
+
+    expect(backend.pedidos.filter((p) => p.metodo === 'post').map((p) => p.arquivos)).toEqual([['BASE_COMMISS_FINAL.xlsx']])
+    expect(router.currentRoute.value.fullPath).toBe('/importar/1')
+  })
+
   it('"Nova importação" volta para a escolha depois que a fila termina', async () => {
     const tela = await abrirTela()
     await escolher(tela, ...DOIS_MESES)

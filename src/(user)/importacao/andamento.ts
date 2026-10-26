@@ -1,4 +1,5 @@
 import { formatarCompetencia } from './formatacao'
+import { tipoDaPlanilha } from './planilhas'
 import type { MesDaFila, SituacaoDoMes } from './stores/importacao'
 
 const TERMINADAS: SituacaoDoMes[] = ['CONCLUIDO', 'PENDENTE', 'FALHA']
@@ -16,10 +17,20 @@ export function temRelatorio(mes: MesDaFila): boolean {
   return mes.jobId !== null && TERMINADAS.includes(mes.situacao)
 }
 
+/** Envio da Comissão sozinha: o backend nunca devolve mês para ele, então o nome das planilhas decide. */
+function soComissao(mes: MesDaFila): boolean {
+  return mes.arquivos.length > 0 && mes.arquivos.every((a) => tipoDaPlanilha(a.nome) === 'COMISSAO')
+}
+
+function rotuloDoEnvioUnico(mes: MesDaFila): string {
+  if (mes.competencia) return formatarCompetencia(mes.competencia)
+  return soComissao(mes) ? 'Comissão' : 'Lendo as planilhas'
+}
+
 function resumoRodando(fila: MesDaFila[]): string {
   const indice = Math.max(0, fila.findIndex((m) => m.situacao === 'PROCESSANDO'))
   const atual = fila[indice]!
-  if (fila.length === 1) return atual.competencia ? formatarCompetencia(atual.competencia) : 'Lendo as planilhas'
+  if (fila.length === 1) return rotuloDoEnvioUnico(atual)
   return `Mês ${indice + 1} de ${fila.length} · ${formatarCompetencia(atual.competencia)}`
 }
 
