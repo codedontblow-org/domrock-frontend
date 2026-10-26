@@ -2,7 +2,11 @@
 import { computed, ref } from 'vue'
 import BotaoIcone from '@/components/BotaoIcone.vue'
 import ParametroCampo from './ParametroCampo.vue'
-import { ETAPAS_DE_ENVIO, type EtapaAprovacao, type RegraCampanha, type ValorParametro } from '../types'
+import { ROTULOS_CURTOS_PARAMETRO } from '../rotulos'
+import { estaVazio } from '../stores/chat'
+import {
+  ETAPAS_DE_ENVIO, type EtapaAprovacao, type ParametroRegra, type RegraCampanha, type ValorParametro,
+} from '../types'
 
 const props = defineProps<{
   regra: RegraCampanha
@@ -38,6 +42,30 @@ const avisoAprovacao = computed(() => {
 })
 const regras = computed(() => props.regra.parametros.filter((p) => p.categoria === 'REGRA'))
 const limites = computed(() => props.regra.parametros.filter((p) => p.categoria === 'CONSTRAINT'))
+
+// Orçamento é opcional (A6-72): entra por "Adicionar orçamento" em Extras, como no Figma do time.
+const obrigatorios = computed(() => limites.value.filter((p) => p.required))
+const opcionais = computed(() => limites.value.filter((p) => !p.required))
+const extrasAbertos = ref<ReadonlySet<string>>(new Set())
+const extrasVisiveis = computed(() => opcionais.value.filter(extraVisivel))
+
+function extraVisivel(parametro: ParametroRegra): boolean {
+  return !estaVazio(parametro.value) || extrasAbertos.value.has(parametro.key)
+}
+
+function abrirExtra(key: string): void {
+  extrasAbertos.value = new Set([...extrasAbertos.value, key])
+}
+
+function tirarExtra(key: string): void {
+  extrasAbertos.value = new Set([...extrasAbertos.value].filter((aberto) => aberto !== key))
+  emit('alterar', key, null)
+}
+
+/** Ex.: orcamento_limite -> "orçamento" */
+function rotuloDoExtra(parametro: ParametroRegra): string {
+  return (ROTULOS_CURTOS_PARAMETRO[parametro.key] ?? parametro.label).toLowerCase()
+}
 const pendentes = computed(() => props.camposVazios.length)
 
 const status = computed(() => {
@@ -74,7 +102,19 @@ const aviso = computed(() => {
         <ParametroCampo v-for="p in regras" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
       </div>
       <div class="ficha-grupo ficha-grupo--limites" aria-label="Limites">
-        <ParametroCampo v-for="p in limites" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
+        <ParametroCampo v-for="p in obrigatorios" :key="p.key" :parametro="p" @alterar="emit('alterar', p.key, $event)" />
+
+        <div v-if="opcionais.length" class="ficha-extras" role="group" aria-labelledby="ficha-extras-titulo">
+          <p id="ficha-extras-titulo" class="ficha-extras-titulo">Extras</p>
+          <div class="ficha-extras-botoes">
+            <button v-for="p in opcionais" :key="p.key" type="button" class="extra-adicionar"
+              :disabled="extraVisivel(p)" @click="abrirExtra(p.key)">
+              <i class="bi bi-plus-circle" aria-hidden="true" />Adicionar {{ rotuloDoExtra(p) }}
+            </button>
+          </div>
+          <ParametroCampo v-for="p in extrasVisiveis" :key="p.key" :parametro="p" removivel
+            @alterar="emit('alterar', p.key, $event)" @remover="tirarExtra(p.key)" />
+        </div>
       </div>
     </div>
 
@@ -188,14 +228,60 @@ const aviso = computed(() => {
   gap: 14px;
 }
 
-/* Meta e orçamento lado a lado: são os dois limites da campanha e se leem juntos. */
+/* A meta, e embaixo os Extras com o orçamento opcional (A6-72). */
 .ficha-grupo--limites {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.ficha-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ficha-extras-titulo {
+  color: var(--color-white-txt1);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.ficha-extras-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.extra-adicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--color-black-bg1);
+  color: var(--color-white-txt1);
+  font-family: var(--font-inconsolata);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.extra-adicionar:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 8%);
+}
+
+.extra-adicionar:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+/* Já na ficha: o botão fica apagado, como o "Adicionar Meta" do Figma do time. */
+.extra-adicionar:disabled {
+  background-color: transparent;
+  color: var(--color-gray-txt3-dark);
+  cursor: default;
 }
 
 .ficha-rodape {

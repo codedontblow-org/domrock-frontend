@@ -128,16 +128,19 @@ watch(() => route.params.id, (id) => {
               <div class="resultado-grid">
                 <div class="resultado-card">
                   <span class="card-label">Custo adicional</span>
-                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.custo_incremental) }}</span>
+                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.totais.diferenca) }}</span>
                 </div>
-                <div class="resultado-card">
-                  <span class="card-label">Orçamento limite</span>
-                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.orcamento_limite) }}</span>
-                </div>
-                <div class="resultado-card">
-                  <span class="card-label">Folga</span>
-                  <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.folga) }}</span>
-                </div>
+                <!-- Orçamento é opcional (A6-72): sem ele, não há limite nem folga para mostrar. -->
+                <template v-if="simulacao.resultado.orcamento">
+                  <div class="resultado-card">
+                    <span class="card-label">Orçamento limite</span>
+                    <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.orcamento_limite) }}</span>
+                  </div>
+                  <div class="resultado-card">
+                    <span class="card-label">Folga</span>
+                    <span class="card-valor">{{ formatarMoeda(simulacao.resultado.orcamento.folga) }}</span>
+                  </div>
+                </template>
                 <div class="resultado-card">
                   <span class="card-label">Pessoas impactadas</span>
                   <span class="card-valor">{{ simulacao.resultado.impacto.pessoas_impactadas }}</span>

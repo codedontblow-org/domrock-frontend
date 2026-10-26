@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import CampanhaDetalhePage from '../[id]/Page.vue'
 import { definirServicoCampanhas } from '../stores/campanhas'
+import { regraBlackFriday, resultadoDoCriterio } from '../../chat/__tests__/fakes'
 import { campanhaReprovada, erroDoBackend, FakeServicoCampanhas } from './fakes'
 
 // O store importa o `api`, que importa o router: o mock troca só o que a página usa.
@@ -101,6 +102,22 @@ describe('Detalhe da campanha', () => {
 
     expect(JSON.parse(wrapper.find('.link-conversa').attributes('data-to')!))
       .toEqual({ name: 'chat', query: { simulacao: 345 } })
+  })
+
+  it('sem orçamento, a ficha mostra o custo e não mostra orçamento nem folga (A6-72)', async () => {
+    servico.campanha = campanhaReprovada({
+      ultima_simulacao: {
+        id: 345, regra: regraBlackFriday({ orcamento_limite: null }), resultado: resultadoDoCriterio('sem_orcamento'),
+        concluida_em: '2026-10-21T12:59:02Z',
+      },
+    })
+
+    const wrapper = await abrirDetalhe()
+
+    const resultado = wrapper.find('.resultado-grid').text().replace(/\u00a0/g, ' ')
+    expect(resultado).toContain('R$ 23.736,10')
+    expect(resultado).not.toContain('Orçamento limite')
+    expect(resultado).not.toContain('Folga')
   })
 
   it('sem acesso, mostra a mensagem do backend', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { regraBlackFriday, resultadoBlackFriday } from '../../chat/__tests__/fakes'
+import { regraBlackFriday, resultadoBlackFriday, resultadoDoCriterio } from '../../chat/__tests__/fakes'
 import {
   avisoDeResimulacao, cartaoDaFila, comVersao, descreverAlcance, diaMesDeData, duracaoEmDias, detalheAprovada, linhaAprovada,
   montarJustificativa,
@@ -57,6 +57,20 @@ describe('montagem dos cards de aprovação', () => {
     expect(cartao.alcance).toBe('Afeta 3 cargos e todas as marcas.')
     expect(cartao.cargos).toEqual(['Vendedor loja', 'Vendedor balcão', 'Assistente de vendas'])
     expect(cartao.marcas).toEqual(['Todas'])
+  })
+
+  it('sem orçamento, o card mostra o custo e quanto ele é da venda do período (A6-72)', () => {
+    const versao = {
+      campanha_id: 7, numero: 1, status: 'AGUARDANDO_APROVACAO', autor: { id: 1, nome: 'Gabriela' },
+      submetida_em: '2026-11-16T15:00:00Z', simulacao_id: 3, resimulacao_necessaria: false, decisao: null,
+      regra: regraBlackFriday({ orcamento_limite: null }), resultado: resultadoDoCriterio('sem_orcamento'),
+      acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'], aprovadas_depois: [], resimulacao: null,
+    } satisfies VersaoCampanha
+
+    const cartao = comVersao(cartaoDaFila(itemDaFila()), versao)
+
+    expect(cartao.custo?.replace(/\u00a0/g, ' ')).toBe('R$ 23.736,10')
+    expect(cartao.custoDetalhe).toBe('0,99% da venda do período.')
   })
 
   it('calcula o uso do orçamento e monta a justificativa com as interferências', () => {
