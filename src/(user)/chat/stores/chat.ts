@@ -63,7 +63,7 @@ export const useChatStore = defineStore('chat', () => {
     aguardandoLana.value = true
     try {
       const resposta = await servicoCampanha.conversar(chatId.value, texto, regra.value)
-      adicionar('agente', resposta.response)
+      adicionar('agente', resposta.response, { events: resposta.events })
       if (resposta.regra) regra.value = resposta.regra
     } catch (erro) {
       adicionar('erro', descreverFalha(erro))

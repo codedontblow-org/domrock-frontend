@@ -33,10 +33,25 @@ export interface RegraCampanha {
   faltantes: string[]
 }
 
+export interface EventoAgente {
+  ferramenta: string
+  descricao_legivel: string                                                                    
+  tempo: number                                                                                
+  situacao: string                                                                             
+  tabelas?: string[] | null                                                                    
+  competencias?: string[] | null                                                               
+  filtros?: any                                                                                
+  registros?: number | null                                                                    
+  sql?: string | null                                                                          
+  args?: Record<string, any> | null                                                            
+  result?: any     
+}
+
 export interface RespostaChat {
   chat_id: string
   response: string
   regra: RegraCampanha | null
+  events?: EventoAgente[]
 }
 
 export interface QuebraDimensao {
@@ -144,4 +159,5 @@ export interface MensagemChat {
   papel: PapelMensagem
   texto: string
   resultado?: ResultadoSimulacao
+  events?: EventoAgente[]
 }
