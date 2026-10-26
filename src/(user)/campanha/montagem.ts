@@ -1,6 +1,6 @@
 import { formatarMoeda, formatarPercentual } from '../chat/formatacao'
 import { NOMES_CARGO, NOMES_MARCA } from '../chat/rotulos'
-import type { Periodo, RegraCampanha, ResultadoSimulacao } from '../chat/types'
+import type { Periodo, RegraCampanha } from '../chat/types'
 import type { ListaCampanha } from './components/ListaCampanha.vue'
 import type { Tabela } from './components/TabelaCampanhas.vue'
 import type {
@@ -109,23 +109,12 @@ export function usoDoOrcamento(custo: number, limite: number): string | null {
   return `${formatarPercentual(Math.round((custo / limite) * 1000) / 10)} do orçamento.`
 }
 
-/**
- * Linha abaixo do custo no card: o uso do orçamento ou, sem orçamento (A6-72), quanto o custo é da venda.
- * Ex.: sem orçamento e custo de 0,99% da venda -> "0,99% da venda do período."
- */
-export function detalheDoCusto(resultado: ResultadoSimulacao): string | null {
-  const { orcamento, retorno } = resultado
-  if (orcamento) return usoDoOrcamento(orcamento.custo_incremental, orcamento.orcamento_limite)
-  if (retorno?.custo_pct_venda == null) return null
-  return `${formatarPercentual(retorno.custo_pct_venda)} da venda do período.`
-}
-
 export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): CampanhaAprovacao {
   const { regra, resultado } = versao
   const pct = valorDe<number>(regra, 'pct_acrescimo')
   const cargos = valorDe<string[]>(regra, 'cargos_alvo') ?? []
   const marcas = valorDe<string[]>(regra, 'marcas_alvo') ?? []
-  const { totais } = resultado
+  const { orcamento, totais } = resultado
   const percentual = pct === null ? null : `+${formatarPercentual(pct)}`
 
   const acrescimos: ItemDetalhe[] = [
@@ -140,7 +129,8 @@ export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): Ca
     ...cartao,
     duracaoDias: cartao.duracaoDias ?? duracaoEmDias(valorDe<Periodo>(regra, 'periodo')),
     custo: formatarMoeda(totais.diferenca),
-    custoDetalhe: detalheDoCusto(resultado),
+    // Sem orçamento (A6-72), não há uso do orçamento para mostrar abaixo do custo.
+    custoDetalhe: orcamento ? usoDoOrcamento(orcamento.custo_incremental, orcamento.orcamento_limite) : null,
     percentual,
     alcance: descreverAlcance(cargos, marcas),
     detalhe: 'pronto',

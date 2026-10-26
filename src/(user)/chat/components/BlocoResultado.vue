@@ -64,11 +64,6 @@ const idTitulo = useId()
   color: var(--color-red);
 }
 
-.selo--neutro {
-  background-color: color-mix(in srgb, var(--color-gray-txt2-dark) 14%, transparent);
-  color: var(--color-gray-txt2-dark);
-}
-
 .bloco-destaque {
   font-family: var(--font-forum);
   font-size: 44px;

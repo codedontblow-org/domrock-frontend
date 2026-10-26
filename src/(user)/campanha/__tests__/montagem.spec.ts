@@ -59,18 +59,21 @@ describe('montagem dos cards de aprovação', () => {
     expect(cartao.marcas).toEqual(['Todas'])
   })
 
-  it('sem orçamento, o card mostra o custo e quanto ele é da venda do período (A6-72)', () => {
+  it('sem orçamento, o card mostra o custo e não o uso do orçamento (A6-72)', () => {
+    // A Lana ainda manda o retorno provisório; o card só o usa na Sprint 3.
+    const retorno = { provisorio: true, custo_pct_venda: 0.99, custo_por_real_acima_meta: 0.06 }
+    const resultado = { ...resultadoDoCriterio('sem_orcamento'), retorno }
     const versao = {
       campanha_id: 7, numero: 1, status: 'AGUARDANDO_APROVACAO', autor: { id: 1, nome: 'Gabriela' },
       submetida_em: '2026-11-16T15:00:00Z', simulacao_id: 3, resimulacao_necessaria: false, decisao: null,
-      regra: regraBlackFriday({ orcamento_limite: null }), resultado: resultadoDoCriterio('sem_orcamento'),
+      regra: regraBlackFriday({ orcamento_limite: null }), resultado,
       acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'], aprovadas_depois: [], resimulacao: null,
     } satisfies VersaoCampanha
 
     const cartao = comVersao(cartaoDaFila(itemDaFila()), versao)
 
     expect(cartao.custo?.replace(/\u00a0/g, ' ')).toBe('R$ 23.736,10')
-    expect(cartao.custoDetalhe).toBe('0,99% da venda do período.')
+    expect(cartao.custoDetalhe).toBeNull()
   })
 
   it('calcula o uso do orçamento e monta a justificativa com as interferências', () => {

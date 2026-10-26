@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { formatarMoeda, renderizarMarkdown } from '../formatacao'
 import {
-  medidorDaMeta, medidorDoOrcamento, notaDoRetorno, numerosDaComissao, numerosDaMeta, numerosDoRetorno, pctDaMeta,
-  seloDaMeta, seloDoOrcamento, textoDiferencaMeta, vereditoDoOrcamento, type SeloResultado,
+  medidorDaMeta, medidorDoOrcamento, numerosDaComissao, numerosDaMeta, pctDaMeta, seloDaMeta, seloDoOrcamento,
+  textoDiferencaMeta, vereditoDoOrcamento,
 } from '../resultado'
 import type { CenarioAlternativo, ResultadoSimulacao } from '../types'
 import BlocoResultado from './BlocoResultado.vue'
@@ -13,15 +13,13 @@ import MedidorResultado from './MedidorResultado.vue'
 import NumerosResultado from './NumerosResultado.vue'
 import SecaoExpansivel from './SecaoExpansivel.vue'
 
-// Ordem fixa do A6-72 (ADR-004): Meta → Comissão → Retorno → Orçamento, este só com orçamento na ficha.
+// Ordem fixa do A6-72 (ADR-004): Meta → Comissão → Orçamento, este só com orçamento na ficha.
+// O Retorno provisório fica para a Sprint 3 (decisão do PO, 26/10), mesmo que a Lana já o mande.
 const props = defineProps<{ resultado: ResultadoSimulacao }>()
 const emit = defineEmits<{ 'aplicar-cenario': [cenario: CenarioAlternativo] }>()
 
-const SELO_PROVISORIO: SeloResultado = { texto: 'provisório', tom: 'neutro' }
-
 const meta = computed(() => props.resultado.meta)
 const orcamento = computed(() => props.resultado.orcamento)
-const retorno = computed(() => props.resultado.retorno)
 // O maior % que cabe fica no bloco Orçamento; "Sem a marca X" continua no fim, com os outros cenários.
 const cenariosDoOrcamento = computed(() => props.resultado.cenarios.filter((c) => c.tipo === 'ajustar_acrescimo'))
 const outrosCenarios = computed(() => props.resultado.cenarios.filter((c) => c.tipo !== 'ajustar_acrescimo'))
@@ -50,12 +48,6 @@ function aplicar(cenario: CenarioAlternativo): void {
       <SecaoExpansivel titulo="Onde o custo pesa">
         <DetalhamentoCusto :resultado="resultado" />
       </SecaoExpansivel>
-    </BlocoResultado>
-
-    <BlocoResultado v-if="retorno" titulo="Retorno" :selo="SELO_PROVISORIO">
-      <NumerosResultado :itens="numerosDoRetorno(retorno)" />
-      <p v-if="notaDoRetorno(retorno)" class="resultado-linha">{{ notaDoRetorno(retorno) }}</p>
-      <p class="resultado-nota">Conta provisória, até a Dom Rock definir como medir o retorno.</p>
     </BlocoResultado>
 
     <BlocoResultado v-if="orcamento" titulo="Orçamento" :selo="seloDoOrcamento(orcamento)">
@@ -109,12 +101,6 @@ function aplicar(cenario: CenarioAlternativo): void {
   color: var(--color-gray-txt2-dark);
   font-size: 16px;
   line-height: 1.4;
-}
-
-.resultado-nota {
-  color: var(--color-gray-txt3-dark);
-  font-family: var(--font-inconsolata);
-  font-size: 12px;
 }
 
 .tom--positivo {

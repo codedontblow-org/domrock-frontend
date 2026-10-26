@@ -159,42 +159,44 @@ function bloco(wrapper: VueWrapper, titulo: string) {
   return encontrado
 }
 
+// A Lana ainda manda o retorno provisório no resultado (contrato 2.3); a tela só o usa na Sprint 3.
+const RETORNO_DA_LANA = { provisorio: true, custo_pct_venda: 0.99, custo_por_real_acima_meta: 0.06 }
+
 describe('ResultadoSimulacao (A6-72)', () => {
-  it('sem orçamento: Meta, Comissão e Retorno, nessa ordem, com os números do critério', () => {
+  it('sem orçamento: Meta e Comissão, nessa ordem, com os números do critério', () => {
     const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoDoCriterio('sem_orcamento') } })
 
-    expect(blocos(wrapper)).toEqual(['Meta', 'Comissão', 'Retorno'])
+    expect(blocos(wrapper)).toEqual(['Meta', 'Comissão'])
     expect(texto(bloco(wrapper, 'Meta'))).toContain('120,31%')
     expect(texto(bloco(wrapper, 'Meta'))).toContain('R$ 406.125,93 acima da meta')
     expect(texto(bloco(wrapper, 'Comissão').find('.bloco-destaque'))).toContain('R$ 23.736,10')
-    expect(texto(bloco(wrapper, 'Retorno'))).toContain('0,99%')
-    expect(texto(bloco(wrapper, 'Retorno'))).toContain('R$ 0,06')
     expect(texto(wrapper)).not.toContain('Acréscimo menor, dentro do orçamento')
   })
 
   it('com orçamento de R$ 20.000: bloco Orçamento por último, com o maior acréscimo que cabe', () => {
     const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoDoCriterio('orcamento_20_mil') } })
 
-    expect(blocos(wrapper)).toEqual(['Meta', 'Comissão', 'Retorno', 'Orçamento'])
+    expect(blocos(wrapper)).toEqual(['Meta', 'Comissão', 'Orçamento'])
     const orcamento = texto(bloco(wrapper, 'Orçamento'))
     expect(orcamento).toContain('Não cabe no orçamento')
     expect(orcamento).toContain('0,84%')
     expect(orcamento).toContain('R$ 19.938,34')
   })
 
-  it('meta de R$ 3 milhões: Meta abaixo e Retorno só com o custo sobre a venda', () => {
+  it('meta de R$ 3 milhões: Meta abaixo, com a diferença em reais', () => {
     const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoDoCriterio('meta_3_milhoes') } })
 
     expect(texto(bloco(wrapper, 'Meta'))).toContain('80,20%')
     expect(texto(bloco(wrapper, 'Meta'))).toContain('R$ 593.874,07 abaixo da meta')
-    expect(texto(bloco(wrapper, 'Retorno'))).toContain('0,99%')
-    expect(texto(bloco(wrapper, 'Retorno'))).not.toContain('Custo por R$ 1')
   })
 
-  it('o Retorno leva o selo "provisório"', () => {
-    const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoDoCriterio('sem_orcamento') } })
+  it('não mostra o retorno até a Sprint 3, mesmo vindo da Lana (decisão do PO, 26/10)', () => {
+    const comRetorno = { ...resultadoDoCriterio('sem_orcamento'), retorno: RETORNO_DA_LANA }
 
-    expect(bloco(wrapper, 'Retorno').find('.bloco-selo').text()).toBe('provisório')
+    const wrapper = mount(ResultadoSimulacao, { props: { resultado: comRetorno } })
+
+    expect(texto(wrapper)).not.toContain('Retorno')
+    expect(texto(wrapper)).not.toContain('provisório')
   })
 
   it('"Sem a marca X" continua fora dos blocos, e sem orçamento não diz se cabe', () => {
@@ -210,14 +212,6 @@ describe('ResultadoSimulacao (A6-72)', () => {
 
     expect(wrapper.text()).not.toContain('def aplicar_regra')
     expect(wrapper.text()).not.toContain('Código Python')
-  })
-
-  it('simulação anterior ao A6-72, sem `retorno`, não mostra o bloco Retorno', () => {
-    const { retorno: _retorno, ...antigo } = resultadoBlackFriday()
-
-    const wrapper = mount(ResultadoSimulacao, { props: { resultado: antigo } })
-
-    expect(blocos(wrapper)).toEqual(['Meta', 'Comissão', 'Orçamento'])
   })
 })
 

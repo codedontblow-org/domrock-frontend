@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  diferencaParaMeta, medidorDaMeta, medidorDoOrcamento, notaDoRetorno, numerosDaComissao, numerosDaMeta,
-  numerosDoRetorno, seloDaMeta, seloDoOrcamento, textoDiferencaMeta, vereditoDoOrcamento,
+  diferencaParaMeta, medidorDaMeta, medidorDoOrcamento, numerosDaComissao, numerosDaMeta, seloDaMeta,
+  seloDoOrcamento, textoDiferencaMeta, vereditoDoOrcamento,
 } from '../resultado'
 import { resultadoBlackFriday, resultadoDoCriterio } from './fakes'
 
@@ -55,25 +55,6 @@ describe('Bloco Comissão', () => {
     expect(numeros[1]).toMatchObject({ apoio: '+4,94% na comissão', tomApoio: 'destaque' })
     expect(semNbsp(numeros[2]?.valor ?? '')).toBe('312 de 548 pessoas')
     expect(semNbsp(numeros[2]?.apoio ?? '')).toBe('média de R$ 76,08 cada')
-  })
-})
-
-describe('Bloco Retorno', () => {
-  it('com a meta superada: custo sobre a venda e custo por R$ 1 acima da meta', () => {
-    const { retorno } = resultadoDoCriterio('sem_orcamento')
-
-    expect(numerosDoRetorno(retorno!).map((n) => [n.rotulo, semNbsp(n.valor)])).toEqual([
-      ['Custo sobre a venda do período', '0,99%'],
-      ['Custo por R$ 1 vendido acima da meta', 'R$ 0,06'],
-    ])
-    expect(notaDoRetorno(retorno!)).toBeNull()
-  })
-
-  it('abaixo da meta: só o custo sobre a venda, e uma nota dizendo por quê', () => {
-    const { retorno } = resultadoDoCriterio('meta_3_milhoes')
-
-    expect(numerosDoRetorno(retorno!).map((n) => n.rotulo)).toEqual(['Custo sobre a venda do período'])
-    expect(notaDoRetorno(retorno!)).toBe('A venda não passou da meta, então não há custo por R$ 1 vendido acima dela.')
   })
 })
 

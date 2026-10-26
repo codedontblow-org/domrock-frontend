@@ -104,15 +104,6 @@ export interface AtingimentoMeta {
   diferenca?: number
 }
 
-/** Conta provisória do A6-72 até a Dom Rock definir "retorno" (contrato 2.3). */
-export interface RetornoCampanha {
-  provisorio: boolean
-  /** Custo adicional ÷ venda do período × 100; null sem venda no período. */
-  custo_pct_venda: number | null
-  /** Custo adicional ÷ (venda − meta); null se a venda não passou da meta. */
-  custo_por_real_acima_meta: number | null
-}
-
 export interface ResultadoSimulacao {
   rule_id: string
   competencias: string[]
@@ -122,8 +113,7 @@ export interface ResultadoSimulacao {
   /** null quando a ficha não tem orçamento (A6-72: orçamento é opcional). */
   orcamento: VereditoOrcamento | null
   meta: AtingimentoMeta
-  /** Ausente nas simulações anteriores ao A6-72. */
-  retorno?: RetornoCampanha
+  // A Lana também manda `retorno` (contrato 2.3); a tela só o usa na Sprint 3 (decisão do PO, 26/10).
   impacto: ImpactoPessoas
   maiores_lojas: QuebraDimensao[]
   cenarios: CenarioAlternativo[]

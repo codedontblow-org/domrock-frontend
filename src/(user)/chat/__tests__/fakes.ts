@@ -46,7 +46,6 @@ export function resultadoBlackFriday(cabe = true): ResultadoSimulacao {
       ? { orcamento_limite: 30000, custo_incremental: 23736.17, folga: 6263.83, cabe_no_orcamento: true }
       : { orcamento_limite: 20000, custo_incremental: 23736.17, folga: -3736.17, cabe_no_orcamento: false },
     meta: metaDaBlackFriday(2_000_000),
-    retorno: { provisorio: true, custo_pct_venda: 0.99, custo_por_real_acima_meta: 0.06 },
     impacto: { pessoas_impactadas: 312, pessoas_total: 548, media_por_pessoa: 76.08, maior_acrescimo: 402.5 },
     maiores_lojas: [{ codigo: '13', baseline: 1, simulado: 2, diferenca: 2140.1 }],
     cenarios: [
@@ -93,7 +92,6 @@ export function resultadoDoCriterio(caso: CasoDoCriterio): ResultadoSimulacao {
     ...resultadoBlackFriday(),
     totais: { baseline: 480263.24, simulado: 503999.34, diferenca: 23736.1, diferenca_pct: 4.94 },
     meta,
-    retorno: { provisorio: true, custo_pct_venda: 0.99, custo_por_real_acima_meta: meta.atingida ? 0.06 : null },
     orcamento: comOrcamento
       ? { orcamento_limite: 20000, custo_incremental: 23736.1, folga: -3736.1, cabe_no_orcamento: false }
       : null,

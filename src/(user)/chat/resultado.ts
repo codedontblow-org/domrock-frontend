@@ -1,9 +1,9 @@
-// Textos e números dos blocos do resultado (A6-72): Meta → Comissão → Retorno → Orçamento.
+// Textos e números dos blocos do resultado (A6-72): Meta → Comissão → Orçamento.
 // Só formata o que a Lana calculou; a única conta aqui é a escala das barras.
 import { formatarMoeda, formatarPercentual } from './formatacao'
-import type { AtingimentoMeta, ImpactoPessoas, RetornoCampanha, TotaisSimulacao, VereditoOrcamento } from './types'
+import type { AtingimentoMeta, ImpactoPessoas, TotaisSimulacao, VereditoOrcamento } from './types'
 
-export type TomResultado = 'positivo' | 'aviso' | 'negativo' | 'neutro' | 'destaque'
+export type TomResultado = 'positivo' | 'aviso' | 'negativo' | 'destaque'
 
 export interface SeloResultado {
   texto: string
@@ -75,23 +75,6 @@ export function numerosDaComissao(totais: TotaisSimulacao, impacto: ImpactoPesso
     },
     recebem,
   ]
-}
-
-export function numerosDoRetorno(retorno: RetornoCampanha): NumeroResultado[] {
-  const numeros: NumeroResultado[] = []
-  if (retorno.custo_pct_venda !== null) {
-    numeros.push({ rotulo: 'Custo sobre a venda do período', valor: formatarPercentual(retorno.custo_pct_venda) })
-  }
-  if (retorno.custo_por_real_acima_meta !== null) {
-    numeros.push({ rotulo: 'Custo por R$ 1 vendido acima da meta', valor: formatarMoeda(retorno.custo_por_real_acima_meta) })
-  }
-  return numeros
-}
-
-/** Por que falta o custo por R$ 1 acima da meta; null quando ele aparece. */
-export function notaDoRetorno(retorno: RetornoCampanha): string | null {
-  if (retorno.custo_por_real_acima_meta !== null) return null
-  return 'A venda não passou da meta, então não há custo por R$ 1 vendido acima dela.'
 }
 
 export function seloDoOrcamento(orcamento: VereditoOrcamento): SeloResultado {
