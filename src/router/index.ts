@@ -5,6 +5,8 @@ import ChatPage from '../(user)/chat/Page.vue'
 import LoginPage from '../(auth)/login/Page.vue'
 import AdminUsers from '../(admin)/users/Page.vue'
 import CampanhaPage from '../(user)/campanha/Page.vue'
+import CampanhasPage from '../(user)/campanhas/Page.vue'
+import CampanhaDetalhePage from '../(user)/campanhas/[id]/Page.vue'
 import VigentePage from '../(user)/vigente/Page.vue'
 import RelatoriosPage from '../(user)/relatorios/Page.vue'
 import ConfiguracoesPage from '../(user)/configuracoes/Page.vue'
@@ -27,6 +29,16 @@ export const router = createRouter({
           path: 'campanha',
           name: 'campanha',
           component: CampanhaPage,
+        },
+        {
+          path: 'campanhas',
+          name: 'campanhas',
+          component: CampanhasPage,
+        },
+        {
+          path: 'campanhas/:id',
+          name: 'campanha-detalhe',
+          component: CampanhaDetalhePage,
         },
         {
           path: 'vigente',

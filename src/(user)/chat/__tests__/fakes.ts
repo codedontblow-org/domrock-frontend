@@ -108,7 +108,7 @@ export class FakeServicoCampanha implements ServicoCampanha {
   async salvarCampanha(chatId: string, simulacaoId: number, nome: string): Promise<CampanhaSalva> {
     this.salvamentos.push({ chatId, simulacaoId, nome })
     if (this.falha) throw this.falha
-    return { id: 12, nome, status: 'RASCUNHO' }
+    return { id: 12, nome, status: 'RASCUNHO', versao_atual: null }
   }
 
   async submeter(campanhaId: number): Promise<CampanhaSalva> {
@@ -116,7 +116,7 @@ export class FakeServicoCampanha implements ServicoCampanha {
     const falha = this.falhaSubmeter
     this.falhaSubmeter = null
     if (falha) throw falha
-    return { id: campanhaId, nome: 'Natal 2025', status: 'AGUARDANDO_APROVACAO' }
+    return { id: campanhaId, nome: 'Natal 2025', status: 'AGUARDANDO_APROVACAO', versao_atual: 1 }
   }
 
   liberarSimulacao(): void {

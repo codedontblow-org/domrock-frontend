@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
+import { onBeforeUnmount, onMounted, ref, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import logo from '@/assets/logo.svg'
 import type { MenuItem, Chat, User } from '@/types/sidebar'
-import { useRouter } from 'vue-router'
 
 import { encerrarSessao } from '@/services/auth'
+
+const router = useRouter()
+const route = useRoute()
 
 // Abaixo desta largura a barra começa recolhida e, aberta, fica por cima do conteúdo.
 const CONSULTA_CELULAR = '(max-width: 900px)'
@@ -46,8 +49,8 @@ const menuItems = computed<MenuItem[]> (() => {
     return [
       //pluscircle  
       { id: 'nova-campanha', label: 'Nova Campanha', icon: 'bi bi-plus-circle', rota: '/ '},
-      //piggybank
-      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: '/campanha' },
+      //piggybank. Supervisor cai na fila de aprovação; Gerente, em "Minhas campanhas" (decisão do PO, 26/10).
+      { id: 'campanhas', label: 'Campanhas', icon: 'bi bi-piggy-bank', rota: profile.value === 'SUPERVISOR' ? '/campanha' : '/campanhas' },
       //calendar4event
       { id: 'vigente', label: 'Vigente', icon: 'bi bi-calendar4-event', rota: '/vigente' },
       //clipboard
@@ -75,7 +78,6 @@ const user = ref<User>({
 })
 
 const activeItem = ref<string>('nova-campanha')
-const router = useRouter()
 
 function selectItem(item: MenuItem): void {
   activeItem.value = item.id
@@ -83,6 +85,21 @@ function selectItem(item: MenuItem): void {
   if (isMobile.value) isCollapsed.value = true
 }
 
+watch(
+  () => route?.path,
+  (path) => {
+    if (!path) return
+    // '/campanha' cobre também '/campanhas' e '/campanhas/:id'
+    if (path.startsWith('/campanha')) {
+      activeItem.value = 'campanhas'
+    } else if (path.startsWith('/admin')) {
+      activeItem.value = 'usuarios'
+    } else if (path === '/') {
+      activeItem.value = 'nova-campanha'
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

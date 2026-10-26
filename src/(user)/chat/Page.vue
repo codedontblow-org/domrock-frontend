@@ -9,12 +9,13 @@ import SpeechBubble from './components/SpeechBubble.vue';
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import FerramentasDropdown from './components/FerramentasDropdown.vue'
+import ResumoCampanha from '../campanhas/components/ResumoCampanha.vue'
 import { useChatStore } from './stores/chat'
 
 const chat = useChatStore()
 const {
   mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular, etapaAprovacao, ocupado,
-  somenteLeitura,
+  somenteLeitura, campanha,
 } = storeToRefs(chat)
 const rota = useRoute()
 
@@ -82,6 +83,12 @@ watch(() => mensagens.value.length, async () => {
       </div>
 
       <div class="chat-input">
+        <ResumoCampanha
+          v-if="campanha"
+          :nome="campanha.nome"
+          :status="campanha.status"
+          :versao="campanha.versao_atual"
+        />
         <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
       </div>
     </div>

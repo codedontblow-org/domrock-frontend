@@ -82,13 +82,41 @@ export interface VersaoCampanha {
   decisao: DecisaoCampanha | null
 }
 
-/** GET /api/campanhas/{id}: só o que a tela usa. */
+/** Itens de `acoes` da Campanha (contrato 5.2), na ordem dos botões: o front não deduz nada do status. */
+export type AcaoCampanha = 'RENOMEAR' | 'SUBMETER' | 'EDITAR' | 'ARQUIVAR'
+
+/** Item de `versoes` da Campanha (contrato 5.2): uma por submissão, da mais antiga para a mais nova. */
+export interface VersaoResumo {
+  numero: number
+  status: StatusCampanha
+  submetida_em: string
+  decisao: DecisaoCampanha | null
+}
+
+/** A última simulação concluída: é ela que vira a próxima versão no submeter (contrato 5.2). */
+export interface UltimaSimulacao {
+  id: number
+  regra: RegraCampanha
+  resultado: ResultadoSimulacao
+  concluida_em: string
+}
+
+/** GET /api/campanhas/{id} e as ações do autor (contrato 5.2 e 5.7): só o que a tela usa, sem o `log`. */
 export interface CampanhaDetalhe {
   id: number
   nome: string
   status: StatusCampanha
+  vigencia: CampanhaResumo['vigencia']
+  em_simulacao: boolean
+  acoes: AcaoCampanha[]
+  autor: UsuarioResumo
   chat_id: string
+  periodo: PeriodoCampanha | null
   versao_atual: number | null
+  ultima_simulacao: UltimaSimulacao | null
+  versoes: VersaoResumo[]
+  criada_em: string
+  atualizada_em: string
 }
 
 // A rota entra no A6-68: corpo suposto a partir dos testes do backend (decisão + justificativa).

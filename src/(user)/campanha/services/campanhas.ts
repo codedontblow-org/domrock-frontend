@@ -2,8 +2,18 @@ import type { AxiosInstance } from 'axios'
 import { acompanharSimulacao } from '../../chat/services/campanha'
 import type { SimulacaoConcluida, SimulacaoCriada } from '../../chat/types'
 import type {
-  CampanhaAprovada, CampanhaDetalhe, CampanhaResumo, FilaCampanha, PedidoDecisao, StatusCampanha, VersaoCampanha,
+  AcaoCampanha, CampanhaAprovada, CampanhaDetalhe, CampanhaResumo, FilaCampanha, PedidoDecisao, StatusCampanha,
+  VersaoCampanha,
 } from '../types'
+
+/** Ações do autor que são um POST sem corpo (contrato 5.7); RENOMEAR é o PUT com o nome. */
+export type AcaoSemCorpo = Exclude<AcaoCampanha, 'RENOMEAR'>
+
+const ROTA_DA_ACAO: Record<AcaoSemCorpo, string> = {
+  SUBMETER: 'submeter',
+  EDITAR: 'editar',
+  ARQUIVAR: 'arquivar',
+}
 
 export function criarServicoCampanhas(http: AxiosInstance, esperar?: (ms: number) => Promise<void>) {
   return {
@@ -24,6 +34,18 @@ export function criarServicoCampanhas(http: AxiosInstance, esperar?: (ms: number
 
     async abrir(id: number): Promise<CampanhaDetalhe> {
       const { data } = await http.get<CampanhaDetalhe>(`/api/campanhas/${id}`)
+      return data
+    },
+
+    /** Ex.: agir(12, 'EDITAR') faz POST /api/campanhas/12/editar e devolve a Campanha atualizada (5.7). */
+    async agir(id: number, acao: AcaoSemCorpo): Promise<CampanhaDetalhe> {
+      const { data } = await http.post<CampanhaDetalhe>(`/api/campanhas/${id}/${ROTA_DA_ACAO[acao]}`)
+      return data
+    },
+
+    /** Só em RASCUNHO (contrato 5.7). */
+    async renomear(id: number, nome: string): Promise<CampanhaDetalhe> {
+      const { data } = await http.put<CampanhaDetalhe>(`/api/campanhas/${id}`, { nome })
       return data
     },
 
