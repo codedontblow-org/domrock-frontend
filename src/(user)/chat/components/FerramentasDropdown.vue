@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { EventoAgente } from '../types'
@@ -20,7 +21,7 @@ function alternarFerramenta(index: number): void {
 
 function obterIcone(ferramenta: string): string {
   if (ferramenta === 'consultar_banco') return 'bi-database-fill'
-  if (ferramenta === 'registrar_parametros_regra') return 'bi-sliders2'
+  if (ferramenta === 'registrar_parametro_regra') return 'bi-sliders2'
   return 'bi-tools'
 }
 
@@ -63,7 +64,7 @@ function formatarJson(dado: unknown): string {
         class="bi bi-chevron-down text-[12px] text-gray-txt3-dark group-hover:text-white-txt1 transition-transform duration-200"
         :class="{ 'rotate-180': aberto }"
         aria-hidden="true"
-      />
+      ></i>
     </button>
 
     <!-- Lista de ferramentas quando o dropdown principal estiver aberto -->
@@ -88,7 +89,7 @@ function formatarJson(dado: unknown): string {
               class="bi text-[16px] shrink-0"
               :class="[obterIcone(event.ferramenta), temErro(event) ? 'text-red' : 'text-blue']"
               aria-hidden="true"
-            />
+            ></i>
             <span
               class="text-label text-white-txt1 truncate transition-colors"
               :class="temErro(event) ? 'group-hover/tool:text-red' : 'group-hover/tool:text-blue'"
@@ -102,7 +103,7 @@ function formatarJson(dado: unknown): string {
                 temErro(event) ? 'group-hover/tool:text-red' : 'group-hover/tool:text-white-txt1'
               ]"
               aria-hidden="true"
-            />
+            ></i>
           </div>
 
           <span class="text-metadata font-inconsolata text-gray-txt3-dark shrink-0 ml-2">
@@ -115,12 +116,12 @@ function formatarJson(dado: unknown): string {
           v-if="ferramentasAbertas[index]"
           class="flex flex-col gap-3 px-5 py-5 bg-black-bg1/60 text-metadata"
         >
-          <!-- Status exibido APENAS quando houver erro (similar a (auth)/login/Page.vue) -->
+          <!-- Status exibido APENAS quando houver erro -->
           <div
             v-if="temErro(event)"
             class="flex items-center gap-2 bg-black-bg2 px-3 py-2 rounded border-l-3 border-red"
           >
-            <i class="bi bi-exclamation-triangle-fill text-red shrink-0" aria-hidden="true" />
+            <i class="bi bi-exclamation-triangle-fill text-red shrink-0" aria-hidden="true"></i>
             <p class="text-white text-label">{{ event.situacao }}</p>
           </div>
 
