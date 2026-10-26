@@ -35,16 +35,16 @@ export interface RegraCampanha {
 
 export interface EventoAgente {
   ferramenta: string
-  descricao_legivel: string                                                                    
-  tempo: number                                                                                
-  situacao: string                                                                             
-  tabelas?: string[] | null                                                                    
-  competencias?: string[] | null                                                               
-  filtros?: any                                                                                
-  registros?: number | null                                                                    
-  sql?: string | null                                                                          
-  args?: Record<string, any> | null                                                            
-  result?: any     
+  descricao_legivel: string
+  tempo: number
+  situacao: string
+  tabelas?: string[] | null
+  competencias?: string[] | null
+  filtros?: unknown
+  registros?: number | null
+  sql?: string | null
+  args?: Record<string, unknown> | null
+  result?: unknown
 }
 
 export interface RespostaChat {
@@ -147,10 +147,13 @@ export interface CampanhaSalva {
 /**
  * Onde a conversa está no caminho até a aprovação. `desatualizada`: o painel mudou depois da
  * última simulação, e o backend submete sempre a última simulação concluída. `fora_do_orcamento`:
- * o custo simulado passa do orçamento, e só campanha que cabe vai para aprovação.
+ * o custo simulado passa do orçamento; vai para aprovação mesmo assim, com aviso (decisão do PO, 26/10).
  */
 export type EtapaAprovacao =
   | 'sem_simulacao' | 'desatualizada' | 'fora_do_orcamento' | 'pronta' | 'enviando' | 'enviada' | 'somente_leitura'
+
+/** Etapas em que o botão "Enviar para aprovação" funciona. */
+export const ETAPAS_DE_ENVIO: readonly EtapaAprovacao[] = ['pronta', 'fora_do_orcamento']
 
 export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro'
 

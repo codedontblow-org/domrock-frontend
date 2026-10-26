@@ -46,17 +46,39 @@ export interface DecisaoCampanha {
   justificativa: string | null
 }
 
+/** Itens de `acoes` da versão (contrato 5.6): o front mostra um botão por item e não deduz nada do perfil. */
+export type AcaoVersao = 'APROVAR' | 'REPROVAR' | 'RESIMULAR'
+
+/** Outra campanha do mesmo período aprovada depois da submissão (contrato 5.6). */
+export interface AprovadaDepois {
+  campanha_id: number
+  nome: string
+  aprovador: string
+  aprovada_em: string
+}
+
+/** Última re-simulação concluída da versão (contrato 5.9): a decisão vale sobre este número. */
+export interface ResimulacaoVersao {
+  simulacao_id: number
+  por: UsuarioResumo
+  em: string
+  resultado: ResultadoSimulacao
+}
+
 /** GET /api/campanhas/{id}/versoes/{numero}: a versão congelada na submissão. */
 export interface VersaoCampanha {
   campanha_id: number
   numero: number
   status: StatusCampanha
+  acoes: AcaoVersao[]
   autor: UsuarioResumo
   submetida_em: string
   simulacao_id: number
   regra: RegraCampanha
   resultado: ResultadoSimulacao
   resimulacao_necessaria: boolean
+  aprovadas_depois: AprovadaDepois[]
+  resimulacao: ResimulacaoVersao | null
   decisao: DecisaoCampanha | null
 }
 
@@ -128,4 +150,10 @@ export interface CampanhaAprovacao {
   marcas?: string[]
   cargos?: string[]
   interferencias?: Interferencia[]
+  /** As `acoes` da versão; ausente enquanto ela carrega (nenhum botão aparece). */
+  acoes?: AcaoVersao[]
+  /** "Outra campanha deste período foi aprovada depois da submissão…", ou null. */
+  avisoResimulacao?: string | null
+  /** Custo adicional da última re-simulação, para comparar com `custo`. */
+  custoResimulado?: string | null
 }

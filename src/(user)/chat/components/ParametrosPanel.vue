@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import BotaoIcone from '@/components/BotaoIcone.vue'
 import ParametroCampo from './ParametroCampo.vue'
-import type { EtapaAprovacao, RegraCampanha, ValorParametro } from '../types'
+import { ETAPAS_DE_ENVIO, type EtapaAprovacao, type RegraCampanha, type ValorParametro } from '../types'
 
 const props = defineProps<{
   regra: RegraCampanha
@@ -26,13 +26,13 @@ const NOME_MAXIMO = 150
 const comandoAberto = ref(false)
 const nomeCampanha = ref('')
 const podeEnviar = computed(() =>
-  props.aprovacao === 'pronta' && !props.ocupado && nomeCampanha.value.trim().length > 0,
+  ETAPAS_DE_ENVIO.includes(props.aprovacao) && !props.ocupado && nomeCampanha.value.trim().length > 0,
 )
 const avisoAprovacao = computed(() => {
   if (props.aprovacao === 'enviada') return 'Enviada! Acompanhe em Campanhas.'
   if (props.aprovacao === 'desatualizada') return 'A campanha mudou depois da simulação: simule de novo para enviar.'
   if (props.aprovacao === 'fora_do_orcamento') {
-    return 'O custo passa do orçamento: ajuste o acréscimo, as marcas ou o orçamento e simule de novo para enviar.'
+    return 'O custo passa do orçamento. Dá para enviar assim mesmo: o supervisor vê o estouro na análise.'
   }
   return 'O supervisor recebe a campanha com o resultado da última simulação.'
 })
@@ -95,7 +95,7 @@ const aviso = computed(() => {
         </button>
         <p class="ficha-aviso" aria-live="polite" :class="{
           'ficha-aviso--enviada': aprovacao === 'enviada',
-          'ficha-aviso--bloqueada': aprovacao === 'fora_do_orcamento',
+          'ficha-aviso--alerta': aprovacao === 'fora_do_orcamento',
         }">
           {{ avisoAprovacao }}
         </p>
@@ -240,7 +240,7 @@ const aviso = computed(() => {
   color: var(--color-green);
 }
 
-.ficha-aviso--bloqueada {
+.ficha-aviso--alerta {
   color: var(--color-orange);
 }
 

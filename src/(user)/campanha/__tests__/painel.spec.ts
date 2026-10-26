@@ -9,12 +9,12 @@ const campanha: CampanhaAprovacao = {
   id: 7, versao: 1, titulo: 'Natal 2025', inicio: '01/12', fim: '24/12', duracaoDias: 24,
   sugeridoPor: 'Gabriela', submetidoEm: '25/10', status: 'Sem conflitos', custo: 'R$ 1.000,00',
   custoDetalhe: null, percentual: '+1,5%', alcance: null, detalhe: 'pronto', simulacaoId: 345,
-  interferencias: INTERFERENCIAS_PROVISORIAS,
+  interferencias: INTERFERENCIAS_PROVISORIAS, acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'],
 }
 
-function montar() {
+function montar(alterar: Partial<CampanhaAprovacao> = {}) {
   return mount(PainelAprovacao, {
-    props: { campanha },
+    props: { campanha: { ...campanha, ...alterar } },
     attachTo: document.body,
     global: { stubs: { teleport: true, RouterLink: { props: ['to'], template: '<a :data-to="JSON.stringify(to)"><slot /></a>' } } },
   })
@@ -41,6 +41,40 @@ describe('PainelAprovacao', () => {
     const painel = montar()
 
     expect(JSON.parse(painel.find('.link-chat').attributes('data-to')!)).toEqual({ name: 'chat', query: { simulacao: 345 } })
+    painel.unmount()
+  })
+
+  it('com re-simulação pendente, aprovar some e o aviso diz por quê', () => {
+    const aviso = 'Outra campanha deste período foi aprovada depois da submissão: Semana do Vendedor (Sílvia).'
+    const painel = montar({ acoes: ['REPROVAR', 'RESIMULAR'], avisoResimulacao: aviso })
+
+    expect(painel.find('.acao--aprovar').exists()).toBe(false)
+    expect(painel.find('.bloco-alerta').text()).toBe(aviso)
+    painel.unmount()
+  })
+
+  it('"Simular de novo" pede a re-simulação da campanha', async () => {
+    const painel = montar()
+
+    await painel.find('.acao--resimular').trigger('click')
+
+    expect(painel.emitted('resimular')?.[0]?.[0]).toMatchObject({ id: 7 })
+    painel.unmount()
+  })
+
+  it('depois de simular de novo, mostra o custo da submissão e o novo', () => {
+    const painel = montar({ custoResimulado: 'R$ 1.200,00' })
+
+    expect(painel.text()).toContain('Custo na submissão')
+    expect(painel.text()).toContain('R$ 1.200,00')
+    painel.unmount()
+  })
+
+  it('sem ações (autor ou versão já decidida), não mostra botão nem campo de devolução', () => {
+    const painel = montar({ acoes: [] })
+
+    expect(painel.findAll('.acao')).toHaveLength(0)
+    expect(painel.find('textarea').exists()).toBe(false)
     painel.unmount()
   })
 

@@ -132,6 +132,15 @@ describe('SpeechBubble', () => {
     expect(wrapper.find('strong').text()).toBe('ok')
     expect(wrapper.html()).not.toContain('onerror')
   })
+
+  it('erro usa o texto claro do balão, e só o balão azul do usuário usa texto escuro', () => {
+    // Regressão do #8: o erro saía com text-black-bg1, a mesma cor do fundo da página.
+    const erro = mount(SpeechBubble, { props: { papel: 'erro', message: 'A Lana está indisponível' } })
+    const usuario = mount(SpeechBubble, { props: { papel: 'usuario', message: 'Black Friday +1%' } })
+
+    expect(erro.find('p').classes()).not.toContain('text-black-bg1')
+    expect(usuario.find('p').classes()).toContain('text-black-bg1')
+  })
 })
 
 describe('Resultado com impacto e cenários', () => {

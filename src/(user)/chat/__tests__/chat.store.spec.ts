@@ -158,19 +158,20 @@ describe('enviar para aprovação', () => {
     expect(servico.salvamentos).toHaveLength(0)
   })
 
-  it('não envia campanha que passa do orçamento', async () => {
+  it('envia para aprovação mesmo quando o custo passa do orçamento', async () => {
     servico.resultado = resultadoBlackFriday(false)
     const chat = useChatStore()
     await chat.enviar('Natal')
     await chat.simular()
+    expect(chat.etapaAprovacao).toBe('fora_do_orcamento')
 
     await chat.enviarParaAprovacao('Natal 2025')
 
-    expect(chat.etapaAprovacao).toBe('fora_do_orcamento')
-    expect(servico.salvamentos).toHaveLength(0)
+    expect(servico.salvamentos).toHaveLength(1)
+    expect(chat.etapaAprovacao).toBe('enviada')
   })
 
-  it('libera o envio quando a nova simulação cabe no orçamento', async () => {
+  it('tira o aviso de orçamento quando a nova simulação cabe', async () => {
     servico.resultado = resultadoBlackFriday(false)
     const chat = useChatStore()
     await chat.enviar('Natal')

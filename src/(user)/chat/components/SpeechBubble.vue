@@ -21,7 +21,8 @@ const html = computed(() => (props.papel === 'agente' ? renderizarMarkdown(props
 <template>
   <div v-if="papel === 'agente'" class="speech-bubble speech-bubble--agente text-body font-raleway" v-html="html" />
   <div v-else class="speech-bubble" :class="`speech-bubble--${papel}`" :role="papel === 'erro' ? 'alert' : undefined">
-    <p class="text-body font-raleway text-black-bg1">
+    <!-- Texto escuro só no balão azul do usuário: o de erro tem fundo transparente sobre a página escura. -->
+    <p class="text-body font-raleway" :class="{ 'text-black-bg1': papel === 'usuario' }">
       {{ message }}
     </p>
   </div>

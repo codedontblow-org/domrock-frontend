@@ -2,11 +2,13 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { renderizarMarkdown } from '../../chat/formatacao'
 import { montarJustificativa } from '../montagem'
-import type { CampanhaAprovacao, Interferencia } from '../types'
+import type { AcaoVersao, CampanhaAprovacao, Interferencia } from '../types'
 
 const props = defineProps<{
   campanha: CampanhaAprovacao | null
   decidindo?: boolean
+  /** Etapa da re-simulação em andamento (contrato 4.2), ou null. */
+  resimulando?: string | null
   erro?: string | null
 }>()
 
@@ -14,6 +16,7 @@ const emit = defineEmits<{
   fechar: []
   aprovar: [campanha: CampanhaAprovacao]
   devolver: [campanha: CampanhaAprovacao, justificativa: string]
+  resimular: [campanha: CampanhaAprovacao]
 }>()
 
 const expandido = ref(false)
@@ -21,9 +24,15 @@ const comentario = ref('')
 const mencionadas = ref<Interferencia[]>([])
 const botaoFechar = ref<HTMLButtonElement | null>(null)
 
-const podeDevolver = computed(() => comentario.value.trim().length > 0 && !props.decidindo)
+// Os botões vêm das `acoes` da versão (contrato 5.6): o backend já tirou APROVAR com re-simulação pendente.
+function temAcao(acao: AcaoVersao): boolean {
+  return props.campanha?.acoes?.includes(acao) ?? false
+}
+
+const ocupado = computed(() => props.decidindo || Boolean(props.resimulando))
+const podeDevolver = computed(() => temAcao('REPROVAR') && comentario.value.trim().length > 0 && !ocupado.value)
 const podeAprovar = computed(() =>
-  props.campanha?.detalhe === 'pronto' && !props.decidindo && comentario.value.trim().length === 0,
+  temAcao('APROVAR') && props.campanha?.detalhe === 'pronto' && !ocupado.value && comentario.value.trim().length === 0,
 )
 
 const descricaoHtml = computed(() => (props.campanha?.descricao ? renderizarMarkdown(props.campanha.descricao) : ''))
@@ -211,7 +220,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
             </ul>
           </section>
 
-          <section class="bloco">
+          <section v-if="campanha.avisoResimulacao || campanha.custoResimulado" class="bloco">
+            <h4>Simulação de novo</h4>
+            <p v-if="campanha.avisoResimulacao" class="bloco-ajuda bloco-alerta" role="status">
+              {{ campanha.avisoResimulacao }}
+            </p>
+            <dl v-if="campanha.custoResimulado" class="acrescimos">
+              <div>
+                <dt>Custo na submissão</dt>
+                <dd>{{ campanha.custo }}</dd>
+              </div>
+              <div class="acrescimos-total">
+                <dt>Custo simulado de novo</dt>
+                <dd>{{ campanha.custoResimulado }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section v-if="temAcao('REPROVAR')" class="bloco">
             <h4><label for="painel-aprovacao-comentario">Devolver campanha</label></h4>
             <p class="bloco-ajuda">
              Devolva a campanha caso algo precise mudar antes dela ser aprovada.
@@ -258,12 +284,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
 
         <p v-if="erro" class="painel-erro" role="alert">{{ erro }}</p>
 
-        <!-- Arquivar é do autor (só em RASCUNHO/REPROVADA): o Supervisor aprova ou devolve. -->
+        <!-- Arquivar é do autor (só em RASCUNHO/REPROVADA): o Supervisor aprova, devolve ou simula de novo. -->
         <footer class="painel-acoes">
-          <button type="button" class="acao acao--devolver" :disabled="!podeDevolver" @click="devolver">
+          <button v-if="temAcao('REPROVAR')" type="button" class="acao acao--devolver" :disabled="!podeDevolver"
+            @click="devolver">
             Devolver campanha
           </button>
-          <button type="button" class="acao acao--aprovar" :disabled="!podeAprovar" @click="emit('aprovar', campanha)">
+          <button v-if="temAcao('RESIMULAR')" type="button" class="acao acao--resimular" :disabled="ocupado"
+            @click="emit('resimular', campanha)">
+            {{ resimulando ?? 'Simular de novo' }}
+          </button>
+          <button v-if="temAcao('APROVAR')" type="button" class="acao acao--aprovar" :disabled="!podeAprovar"
+            @click="emit('aprovar', campanha)">
             {{ decidindo ? 'Enviando…' : 'Aprovar campanha' }}
           </button>
         </footer>
@@ -433,6 +465,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
   color: var(--color-gray-txt2-dark);
   font-size: var(--text-label);
   line-height: 1.5;
+}
+
+.bloco-alerta {
+  color: var(--color-orange);
 }
 
 .acrescimos {
@@ -612,6 +648,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
   border: 1px solid var(--color-red);
   background: none;
   color: var(--color-red);
+}
+
+.acao--resimular {
+  border: 1px solid var(--color-blue);
+  background: none;
+  color: var(--color-blue);
 }
 
 .acao--aprovar {

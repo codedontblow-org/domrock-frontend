@@ -21,23 +21,31 @@ function esperarDeVerdade(ms: number): Promise<void> {
 }
 
 /**
+ * Consulta o job (contrato 4.2) até concluir; serve à simulação do chat e à re-simulação do Supervisor
+ * (5.9). Sem limite de consultas: o backend garante que nenhum job fica RODANDO para sempre (vira ERRO
+ * no read-timeout de 3 min e na subida do servidor, contrato 4).
+ * Ex.: await acompanharSimulacao(api, 346, (etapa) => mostrar(etapa))
+ */
+export async function acompanharSimulacao(
+  http: AxiosInstance, id: number, aoMudarEtapa: (etapa: string) => void,
+  esperar: (ms: number) => Promise<void> = esperarDeVerdade,
+): Promise<SimulacaoConcluida> {
+  for (;;) {
+    await esperar(INTERVALO_CONSULTA_MS)
+    const { data } = await http.get<SimulacaoAndamento>(`/api/simulacoes/${id}`)
+    aoMudarEtapa(data.etapa)
+    if (data.status === 'CONCLUIDA') return { id, resultado: data.resultado }
+    if (data.status === 'ERRO') throw new SimulacaoTerminouEmErro(data.erro)
+  }
+}
+
+/**
  * Chamadas do chat ao Spring (que repassa à Lana). Recebe o cliente HTTP e a espera do polling para
  * ser testável. Ex.: criarServicoCampanha(api).simular(chatId, regra, (etapa) => mostrar(etapa))
  */
 export function criarServicoCampanha(http: AxiosInstance, esperar: (ms: number) => Promise<void> = esperarDeVerdade) {
-  /**
-   * Sem limite de consultas: o backend garante que nenhum job fica RODANDO para sempre (vira ERRO
-   * no read-timeout de 3 min e na subida do servidor, contrato 4).
-   */
-  async function acompanhar(id: number, aoMudarEtapa: (etapa: string) => void): Promise<SimulacaoConcluida> {
-    for (;;) {
-      await esperar(INTERVALO_CONSULTA_MS)
-      const { data } = await http.get<SimulacaoAndamento>(`/api/simulacoes/${id}`)
-      aoMudarEtapa(data.etapa)
-      if (data.status === 'CONCLUIDA') return { id, resultado: data.resultado }
-      if (data.status === 'ERRO') throw new SimulacaoTerminouEmErro(data.erro)
-    }
-  }
+  const acompanhar = (id: number, aoMudarEtapa: (etapa: string) => void) =>
+    acompanharSimulacao(http, id, aoMudarEtapa, esperar)
 
   return {
     /** `regra` leva o painel como está (com edições), para a Lana partir dele. */

@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
-import type {
-  CenarioAlternativo, EtapaAprovacao, MensagemChat, PapelMensagem, RegraCampanha, ValorParametro,
+import {
+  ETAPAS_DE_ENVIO,
+  type CenarioAlternativo, type EtapaAprovacao, type MensagemChat, type PapelMensagem, type RegraCampanha,
+  type ValorParametro,
 } from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
@@ -106,9 +108,14 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  /** Salva a conversa como campanha e a submete: ela passa a aparecer em "Aguardando Aprovação". */
+  /**
+   * Salva a conversa como campanha e a submete: ela passa a aparecer em "Aguardando Aprovação".
+   * Fora do orçamento também vai: quem decide é o supervisor (decisão do PO, 26/10).
+   */
   async function enviarParaAprovacao(nome: string): Promise<void> {
-    if (etapaAprovacao.value !== 'pronta' || ocupado.value || simulacaoId.value === null || !nome.trim()) return
+    if (!ETAPAS_DE_ENVIO.includes(etapaAprovacao.value) || ocupado.value || simulacaoId.value === null || !nome.trim()) {
+      return
+    }
     enviandoAprovacao.value = true
     try {
       campanhaId.value ??= (await servicoCampanha.salvarCampanha(chatId.value, simulacaoId.value, nome.trim())).id

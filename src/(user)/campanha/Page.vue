@@ -7,6 +7,7 @@ import PainelAprovacao from './components/PainelAprovacao.vue'
 import ModalCampanhaPassada from './components/ModalCampanhaPassada.vue'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '@/services/api'
+import { ehSupervisor } from '@/services/auth'
 import { descreverFalha } from '../chat/services/campanha'
 import { criarServicoCampanhas } from './services/campanhas'
 import {
@@ -15,7 +16,8 @@ import {
 import type { CampanhaAprovacao, CampanhaAprovada, PedidoDecisao } from './types'
 
 const servico = criarServicoCampanhas(api)
-const ehSupervisor = localStorage.getItem('perfil') === 'SUPERVISOR'
+// Só escolhe a lista (a fila é rota de Supervisor); os botões do painel vêm das `acoes` da versão.
+const supervisor = ehSupervisor()
 const nomeLogado = JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nome ?? 'Você'
 
 const campanhasAprovacao = ref<CampanhaAprovacao[]>([])
@@ -30,7 +32,7 @@ async function carregarFila() {
   carregandoFila.value = true
   erroFila.value = null
   try {
-    campanhasAprovacao.value = ehSupervisor
+    campanhasAprovacao.value = supervisor
       ? (await servico.fila()).map(cartaoDaFila)
       : (await servico.minhas('AGUARDANDO_APROVACAO')).map((item) => cartaoDeMinhas(item, nomeLogado))
   } catch (erro) {
@@ -88,6 +90,25 @@ async function decidir(campanha: CampanhaAprovacao, decisao: PedidoDecisao['deci
   }
 }
 
+const etapaResimulacao = ref<string | null>(null)
+
+/** Simula de novo a versão (contrato 5.9) e recarrega: a % vigente mudou depois da submissão. */
+async function resimularCampanha(campanha: CampanhaAprovacao) {
+  if (campanha.versao === null) return
+  const numero = campanha.versao
+  erroDecisao.value = null
+  etapaResimulacao.value = 'Simulando…'
+  try {
+    await servico.resimular(campanha.id, numero, (etapa) => { etapaResimulacao.value = `${etapa}…` })
+    const versao = await servico.versao(campanha.id, numero)
+    substituir(campanha.id, (atual) => comVersao(atual, versao))
+  } catch (erro) {
+    erroDecisao.value = descreverFalha(erro)
+  } finally {
+    etapaResimulacao.value = null
+  }
+}
+
 const aprovarCampanha = (campanha: CampanhaAprovacao) => decidir(campanha, 'APROVAR', null)
 const devolverCampanha = (campanha: CampanhaAprovacao, justificativa: string) =>
   decidir(campanha, 'REPROVAR', justificativa)
@@ -134,7 +155,7 @@ onMounted(carregarPassadas)
       <header class="section-header">
         <h2>Aguardando Aprovação</h2>
 
-        <p v-if="ehSupervisor" class="section-description">
+        <p v-if="supervisor" class="section-description">
           Você está visualizando como um Supervisor! Clique em uma campanha para ver mais detalhes,
           aprovar ou devolver.
         </p>
@@ -157,7 +178,7 @@ onMounted(carregarPassadas)
       <CarrosselCampanha
         v-else
         :campanhas="campanhasAprovacao"
-        :selecionavel="ehSupervisor"
+        :selecionavel="supervisor"
         @selecionar="abrirCampanha"
       />
     </section>
@@ -187,13 +208,15 @@ onMounted(carregarPassadas)
     <ModalCampanhaPassada :campanha="passadaSelecionada" @fechar="passadaSelecionada = null" />
 
     <PainelAprovacao
-      v-if="ehSupervisor"
+      v-if="supervisor"
       :campanha="campanhaSelecionada"
       :decidindo="decidindo"
+      :resimulando="etapaResimulacao"
       :erro="erroDecisao"
       @fechar="fecharCampanha"
       @aprovar="aprovarCampanha"
       @devolver="devolverCampanha"
+      @resimular="resimularCampanha"
     />
   </main>
 </template>

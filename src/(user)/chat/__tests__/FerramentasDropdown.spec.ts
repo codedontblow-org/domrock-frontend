@@ -180,4 +180,21 @@ describe('FerramentasDropdown', () => {
     expect(wrapper.text()).toContain('SQL gerado:')
     expect(wrapper.text()).toContain('SELECT * FROM fato_movimentacao_mensal')
   })
+
+  it('mostra numa tabela os dados que a consulta devolveu', async () => {
+    const consulta: EventoAgente = {
+      ferramenta: 'consultar_banco',
+      descricao_legivel: 'Consultando as vendas da marca 30 em outubro de 2025',
+      tempo: 340,
+      situacao: 'ok',
+      result: { status: 'sucesso', dados: [{ qtd_vendas: 188, total: 333666.01 }] },
+    }
+    const wrapper = mount(FerramentasDropdown, { props: { events: [consulta] } })
+    await wrapper.find('button').trigger('click')
+    await wrapper.find('button.group\\/tool').trigger('click')
+
+    expect(wrapper.text()).toContain('Dados retornados:')
+    expect(wrapper.findAll('th').map((th) => th.text())).toEqual(['qtd_vendas', 'total'])
+    expect(wrapper.findAll('td').map((td) => td.text())).toEqual(['188', '333.666,01'])
+  })
 })

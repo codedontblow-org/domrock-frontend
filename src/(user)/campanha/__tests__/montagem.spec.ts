@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { regraBlackFriday, resultadoBlackFriday } from '../../chat/__tests__/fakes'
 import {
-  cartaoDaFila, comVersao, descreverAlcance, diaMesDeData, duracaoEmDias, detalheAprovada, linhaAprovada,
+  avisoDeResimulacao, cartaoDaFila, comVersao, descreverAlcance, diaMesDeData, duracaoEmDias, detalheAprovada, linhaAprovada,
   montarJustificativa,
   usoDoOrcamento,
 } from '../montagem'
@@ -49,6 +49,7 @@ describe('montagem dos cards de aprovação', () => {
       campanha_id: 7, numero: 1, status: 'AGUARDANDO_APROVACAO', autor: { id: 1, nome: 'Gabriela' },
       submetida_em: '2026-11-16T15:00:00Z', simulacao_id: 3, resimulacao_necessaria: false, decisao: null,
       regra: regraBlackFriday(), resultado: resultadoBlackFriday(),
+      acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'], aprovadas_depois: [], resimulacao: null,
     } satisfies VersaoCampanha
     const cartao = comVersao(cartaoDaFila(itemDaFila()), versao)
     expect(cartao.detalhe).toBe('pronto')
@@ -103,5 +104,24 @@ describe('detalheAprovada (modal de Campanhas Passadas)', () => {
       alcance: 'Afeta 2 cargos e todas as marcas.', sugeridoPor: 'Gabriela', status: 'Aprovada', simulacaoId: 23,
     })
     expect(detalhe.custo.replace(/\u00a0/g, ' ')).toBe('R$ 30.674,22')
+  })
+
+  it('re-simulação pendente vira aviso com as campanhas aprovadas depois', () => {
+    const versao = {
+      campanha_id: 7, numero: 1, status: 'AGUARDANDO_APROVACAO', autor: { id: 1, nome: 'Gabriela' },
+      submetida_em: '2026-11-16T15:00:00Z', simulacao_id: 3, resimulacao_necessaria: true, decisao: null,
+      regra: regraBlackFriday(), resultado: resultadoBlackFriday(), acoes: ['REPROVAR', 'RESIMULAR'],
+      aprovadas_depois: [{ campanha_id: 14, nome: 'Semana do Vendedor', aprovador: 'Sílvia', aprovada_em: '2026-11-16T16:00:00Z' }],
+      resimulacao: null,
+    } satisfies VersaoCampanha
+
+    const cartao = comVersao(cartaoDaFila(itemDaFila()), versao)
+
+    expect(cartao.acoes).toEqual(['REPROVAR', 'RESIMULAR'])
+    expect(avisoDeResimulacao(versao)).toBe(
+      'Outra campanha deste período foi aprovada depois da submissão: Semana do Vendedor (Sílvia). Simule de novo antes de aprovar.',
+    )
+    expect(cartao.avisoResimulacao).toBe(avisoDeResimulacao(versao))
+    expect(cartao.custoResimulado).toBeNull()
   })
 })

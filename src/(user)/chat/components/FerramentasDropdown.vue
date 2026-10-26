@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { EventoAgente } from '../types'
+import TabelaDados from './TabelaDados.vue'
 
 defineProps<{
   events: EventoAgente[]
@@ -35,6 +36,12 @@ function formatarTempo(tempoMs?: number | null): string {
   if (tempoMs == null || isNaN(tempoMs)) return '0.0s'
   const segundos = Math.max(0, tempoMs) / 1000
   return `${segundos.toFixed(1)}s`
+}
+
+// Linhas que a consulta devolveu (no máximo 50, o LIMIT do guard da Lana): a fonte do número.
+function dadosRetornados(event: EventoAgente): Record<string, unknown>[] {
+  if (typeof event.result !== 'object' || event.result === null || !('dados' in event.result)) return []
+  return Array.isArray(event.result.dados) ? event.result.dados : []
 }
 
 function formatarJson(dado: unknown): string {
@@ -163,6 +170,12 @@ function formatarJson(dado: unknown): string {
           <div v-if="event.filtros && (typeof event.filtros === 'object' ? Object.keys(event.filtros).length : true)" class="flex flex-col gap-1">
             <span class="text-label text-gray-txt3-dark">Filtros aplicados:</span>
             <pre class="p-2 rounded bg-black-bg2 font-source-code-pro text-label text-gray-txt2-dark overflow-x-auto whitespace-pre-wrap max-h-36 overflow-y-auto"><code>{{ formatarJson(event.filtros) }}</code></pre>
+          </div>
+
+          <!-- Dados retornados: visível para todos -->
+          <div v-if="dadosRetornados(event).length" class="flex flex-col gap-1">
+            <span class="text-label text-gray-txt3-dark">Dados retornados:</span>
+            <TabelaDados :linhas="dadosRetornados(event)" />
           </div>
 
           <!-- Parâmetros / Argumentos: visível para todos -->

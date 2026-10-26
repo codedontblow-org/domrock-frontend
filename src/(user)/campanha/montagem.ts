@@ -138,7 +138,21 @@ export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): Ca
     simulacaoId: versao.simulacao_id,
     cargos: cargos.map((codigo) => NOMES_CARGO[codigo] ?? codigo),
     marcas: marcas.map((codigo) => NOMES_MARCA[codigo] ?? codigo),
+    acoes: versao.acoes,
+    avisoResimulacao: avisoDeResimulacao(versao),
+    custoResimulado: versao.resimulacao ? formatarMoeda(versao.resimulacao.resultado.totais.diferenca) : null,
   }
+}
+
+/**
+ * Por que aprovar está fora das ações (contrato 5.6). Ex.: com a Semana do Vendedor aprovada por Sílvia
+ * depois da submissão -> "Outra campanha deste período foi aprovada depois da submissão: Semana do
+ * Vendedor (Sílvia). Simule de novo antes de aprovar."
+ */
+export function avisoDeResimulacao(versao: VersaoCampanha): string | null {
+  if (!versao.resimulacao_necessaria) return null
+  const campanhas = versao.aprovadas_depois.map((outra) => `${outra.nome} (${outra.aprovador})`).join(', ')
+  return `Outra campanha deste período foi aprovada depois da submissão: ${campanhas}. Simule de novo antes de aprovar.`
 }
 
 function dataCompleta(iso: string): string {

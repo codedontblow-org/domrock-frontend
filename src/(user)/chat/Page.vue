@@ -44,7 +44,6 @@ const textoSaudacao = saudacao(usuarioLogado()?.nome)
 // Mantém a última mensagem (ou o resultado) visível quando algo novo chega.
 watch(() => mensagens.value.length, async () => {
   await nextTick()
-  console.log(mensagens.value)
   fimDaConversa.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
 })
 </script>
