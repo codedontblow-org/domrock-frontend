@@ -8,6 +8,8 @@ import CampanhaPage from '../(user)/campanha/Page.vue'
 import VigentePage from '../(user)/vigente/Page.vue'
 import RelatoriosPage from '../(user)/relatorios/Page.vue'
 import ConfiguracoesPage from '../(user)/configuracoes/Page.vue'
+import ImportacaoPage from '../(user)/importacao/Page.vue'
+import RelatorioImportacaoPage from '../(user)/importacao/relatorio/Page.vue'
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +42,16 @@ export const router = createRouter({
           path: 'configuracoes',
           name: 'configuracoes',
           component: ConfiguracoesPage,
+        },
+        {
+          path: 'importar',
+          name: 'importar',
+          component: ImportacaoPage,
+        },
+        {
+          path: 'importar/:id',
+          name: 'importar-relatorio',
+          component: RelatorioImportacaoPage,
         }
       ]
     },
@@ -84,6 +96,11 @@ router.beforeEach(async (to, from) => {
 
   // Sem ser admin, não pode ver rotas do admin
   if (perfil !== 'ADMIN' && to.path.startsWith('/admin')) {
+    return { name: 'chat' }
+  }
+
+  // Importar a base do mês é só do Supervisor (A6-79); o backend também recusa os outros com 403.
+  if (perfil !== 'SUPERVISOR' && to.path.startsWith('/importar')) {
     return { name: 'chat' }
   }
 
