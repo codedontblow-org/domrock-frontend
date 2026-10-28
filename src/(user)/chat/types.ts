@@ -105,6 +105,8 @@ export interface AtingimentoMeta {
 }
 
 export interface ResultadoSimulacao {
+  comissao_periodo?: ComissaoNoTrecho[]
+  conflitos?: ConflitoCampanha[]
   rule_id: string
   competencias: string[]
   totais: TotaisSimulacao
@@ -192,4 +194,53 @@ export interface MensagemChat {
   texto: string
   resultado?: ResultadoSimulacao
   events?: EventoAgente[]
+}
+
+// Contrato 2.3 (A6-74 e A6-75): histórico de campanhas e sobreposição no período simulado.
+export type TipoCampanhaHistorico = 'ACRESCIMO' | 'SUBSTITUICAO'
+export type StatusConflito = 'APROVADA' | 'AGUARDANDO_APROVACAO'
+
+export interface HistoricoComissaoTrecho {
+  campanha_id: number | null
+  versao: number | null
+  tipo: TipoCampanhaHistorico
+  nome: string
+  data_inicio: string
+  data_fim: string
+  pct_acrescimo: number | null
+  pct_novo: number | null
+  autor: string | null
+  aprovador: string | null
+  aprovada_em: string | null
+  justificativa: string
+}
+
+export interface ComissaoNoTrecho {
+  marca: string
+  cargo: string
+  data_inicio: string
+  data_fim: string
+  pct_base: number
+  pct_vigente: number
+  pct_com_campanha: number
+  historico: HistoricoComissaoTrecho[]
+}
+
+export interface SobreposicaoDatas {
+  data_inicio: string
+  data_fim: string
+}
+
+export interface ConflitoCampanha {
+  campanha_id: number | null
+  versao: number | null
+  tipo: TipoCampanhaHistorico
+  nome: string
+  status: StatusConflito
+  autor: string | null
+  data_inicio: string
+  data_fim: string
+  sobreposicao: SobreposicaoDatas
+  marcas: string[]
+  cargos: string[]
 }

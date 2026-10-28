@@ -3,6 +3,7 @@ import { marked } from 'marked'
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const PERCENTUAL = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
+const PERCENTUAL_FIXO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /** Ex.: formatarMoeda(1668.33) -> "R$ 1.668,33" */
 export function formatarMoeda(valor: number): string {
@@ -12,6 +13,11 @@ export function formatarMoeda(valor: number): string {
 /** Ex.: formatarPercentual(0.49) -> "0,49%" */
 export function formatarPercentual(valor: number): string {
   return `${PERCENTUAL.format(valor)}%`
+}
+
+/** Ex.: formatarPercentualFixo(1) -> "1,00%"; formatarPercentualFixo(0.49) -> "0,49%" */
+export function formatarPercentualFixo(valor: number): string {
+  return `${PERCENTUAL_FIXO.format(valor)}%`
 }
 
 /** Saudação da tela inicial pelo primeiro nome. Ex.: saudacao("Ana Lima") -> "Olá, Ana!" */
@@ -58,4 +64,40 @@ export function formatarCelula(valor: unknown): string {
   if (typeof valor === 'number') return Number.isInteger(valor) ? String(valor) : NUMERO_DA_TABELA.format(valor)
   if (typeof valor === 'object') return JSON.stringify(valor)
   return String(valor)
+}
+
+/**
+ * Formata data no padrão brasileiro (dd/mm/aaaa) a partir de string YYYY-MM-DD ou ISO.
+ */
+export function formatarData(data: string | null | undefined): string {
+  if (!data) return 'Não informado'
+  const [ano, mes, dia] = data.slice(0, 10).split('-')
+  if (!ano || !mes || !dia) return 'Não informado'
+  return `${dia}/${mes}/${ano}`
+}
+
+/** Data no fuso horário local em dd/mm/aaaa (evita salto de dia do UTC após 21h). */
+export function dataLocal(data: Date = new Date()): string {
+  const dia = String(data.getDate()).padStart(2, '0')
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const ano = data.getFullYear()
+  return `${dia}/${mes}/${ano}`
+}
+
+/**
+ * Formata intervalo de datas para trecho de comissão (A6-75):
+ * - Um dia: "24/11"
+ * - Mesmo mês: "25 a 30/11"
+ * - Meses diferentes: "25/11 a 05/12"
+ */
+export function formatarTrecho(inicio: string, fim: string): string {
+  const [, mesIni, diaIni] = inicio.slice(0, 10).split('-')
+  const [, mesFim, diaFim] = fim.slice(0, 10).split('-')
+  if (inicio.slice(0, 10) === fim.slice(0, 10)) {
+    return `${diaIni}/${mesIni}`
+  }
+  if (mesIni === mesFim) {
+    return `${diaIni} a ${diaFim}/${mesFim}`
+  }
+  return `${diaIni}/${mesIni} a ${diaFim}/${mesFim}`
 }

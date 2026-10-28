@@ -4,39 +4,65 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { usuarioLogado } from '@/services/auth'
 import { saudacao } from './formatacao'
-import Input from './components/Input.vue';
-import SpeechBubble from './components/SpeechBubble.vue';
+import Input from './components/Input.vue'
+import SpeechBubble from './components/SpeechBubble.vue'
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import FerramentasDropdown from './components/FerramentasDropdown.vue'
-import ResumoCampanha from '../campanhas/components/ResumoCampanha.vue'
+import ChatHeader from './components/ChatHeader.vue'
+import CompartilharCampanhaModal from './components/CompartilharCampanhaModal.vue'
+import { montarConferencia } from './conferencia'
 import { useChatStore } from './stores/chat'
 
 const chat = useChatStore()
 const {
   mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular, etapaAprovacao, ocupado,
-  somenteLeitura, campanha,
+  somenteLeitura, campanha, dataInicio, erroEnvio, ultimoResultado,
 } = storeToRefs(chat)
 const rota = useRoute()
 
+// Resumo e conflitos para conferência antes de submeter a campanha (A6-75).
+const conferencia = computed(() =>
+  regra.value ? montarConferencia(regra.value, ultimoResultado.value) : null,
+)
 
 watch(() => rota.query.simulacao, (simulacao) => {
   const id = Number(simulacao)
   if (simulacao && Number.isInteger(id)) chat.abrirSimulacao(id)
   else if (somenteLeitura.value) chat.novaConversa()
 }, { immediate: true })
+
+const modalCompartilharAberto = ref(false)
+
+function abrirCompartilhar(): void {
+  modalCompartilharAberto.value = true
+}
+
+watch(() => somenteLeitura.value, (leitura) => {
+  if (leitura) modalCompartilharAberto.value = false
+})
+
 const fimDaConversa = ref<HTMLElement | null>(null)
 // Saudação com o primeiro nome de quem está logado (salvo no login).
 const primeiroNome = (JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nome ?? '').trim().split(/\s+/)[0]
-// Recolher a ficha dá a largura toda ao chat (útil para ler o resultado da simulação).
-const fichaRecolhida = ref(false)
-const statusFicha = computed(() => {
-  const faltam = camposVazios.value.length
-  if (faltam === 0) return 'pronta para simular'
-  return faltam === 1 ? '1 campo pendente' : `${faltam} campos pendentes`
-})
+
+// Painel de simulação (tab-simulacao, nó 641:1860; Leo, 28/10).
+// Abre sozinho na primeira vez que a regra aparece; depois disso vale a escolha da pessoa.
+const painelAberto = ref(false)
+const jaAbriuPelaRegra = ref(false)
+
+watch(regra, (novaRegra) => {
+  if (novaRegra && !jaAbriuPelaRegra.value) {
+    painelAberto.value = true
+    jaAbriuPelaRegra.value = true
+  } else if (!novaRegra) {
+    painelAberto.value = false
+    jaAbriuPelaRegra.value = false
+  }
+}, { immediate: true })
+
 // Depois da primeira troca, o convite inicial some: a conversa já diz o que fazer.
-const placeholderDoCampo = computed(() => {
+const placeholderDoCampo = computed<string>(() => {
   if (somenteLeitura.value) return 'Conversa aberta só para consulta'
   return mensagens.value.length === 0 ? 'Descreva sua campanha para a Lana' : 'Responder à Lana'
 })
@@ -52,92 +78,133 @@ watch(() => mensagens.value.length, async () => {
 <template>
   <div
     class="chat-page"
-    :class="{'empty-state': mensagens.length === 0, 'com-ficha': regra }">
-    <div class="conversa">
-      <div v-if="mensagens.length === 0" class="welcome">
+    :class="{ 'empty-state': mensagens.length === 0 }"
+  >
+    <!-- Estado vazio (sem mensagens, boas-vindas): continua como está hoje, sem barra e sem painel (427:694) -->
+    <div v-if="mensagens.length === 0" class="conversa-vazia">
+      <div class="welcome">
         <h1>{{ primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!' }}</h1>
         <p>O que você tem em mente hoje?</p>
       </div>
 
-      <div v-else class="messages" aria-live="polite">
-        <template v-for="mensagem in mensagens" :key="mensagem.id">
-          <FerramentasDropdown
-            v-if="mensagem.papel === 'agente' && mensagem.events && mensagem.events.length > 0"
-            :events="mensagem.events"
-          />
-          <ResultadoSimulacao v-if="mensagem.resultado" :resultado="mensagem.resultado"
-            @aplicar-cenario="chat.aplicarCenario" />
-          <SpeechBubble v-else :message="mensagem.texto" :papel="mensagem.papel" />
-        </template>
-        <p v-if="aguardandoLana" class="pensando">A Lana está escrevendo…</p>
-        <!-- A etapa vem pronta do backend (contrato 4.2); o front só mostra. -->
-        <p v-if="simulando" class="pensando">
-          <template v-if="etapaSimulacao">{{ etapaSimulacao }} · </template>A Lana está gerando o código da regra e simulando sobre os dados reais…
-        </p>
-        
-        <div class="flex items-center gap-3 self-start">
-          <i class="bi bi-info-circle text-label text-gray-txt2-dark"></i>
-          <p class="text-label text-gray-txt2-dark">Até a Lana pode cometer erros! Valide todas as informações antes de compartilhar uma campanha.</p>
-        </div>
-        <div ref="fimDaConversa" class="fim-da-conversa" />
-      </div>
-
-      <div class="chat-input">
-        <ResumoCampanha
-          v-if="campanha"
-          :nome="campanha.nome"
-          :status="campanha.status"
-          :versao="campanha.versao_atual"
-        />
-        <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar"/>
+      <div class="chat-input chat-input--empty">
+        <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar" />
       </div>
     </div>
 
-    <!-- Um só painel que muda de largura, com a mesma transição da sidebar (0,25 s). -->
-    <aside v-if="regra" class="ficha-lateral" :class="{ 'ficha-lateral--recolhida': fichaRecolhida }">
-      <div class="ficha-conteudo" :inert="fichaRecolhida ? true : undefined">
-        <ParametrosPanel
-          :regra="regra"
-          :campos-vazios="camposVazios"
-          :pode-simular="podeSimular"
-          :simulando="simulando"
-          :aprovacao="etapaAprovacao"
-          :ocupado="ocupado"
-          @alterar="chat.atualizarParametro"
-          @simular="chat.simular"
-          @enviar-aprovacao="chat.enviarParaAprovacao"
-          @recolher="fichaRecolhida = true"
-        />
+    <!-- Coluna da conversa com mensagens: ocupa toda a largura entre a sidebar e o painel -->
+    <div v-else class="conversa">
+      <!-- Barra do topo (chat-bar, nó 427:713): encosta na sidebar e no painel -->
+      <ChatHeader
+        :campanha="campanha"
+        :data="dataInicio"
+        :etapa-aprovacao="etapaAprovacao"
+        :ocupado="ocupado"
+        :painel-aberto="painelAberto"
+        :tem-regra="!!regra"
+        @parametros="painelAberto = !painelAberto"
+        @compartilhar="abrirCompartilhar"
+      />
+
+      <CompartilharCampanhaModal
+        v-if="modalCompartilharAberto"
+        :nome-inicial="campanha?.nome ?? ''"
+        :conferencia="conferencia"
+        :etapa-aprovacao="etapaAprovacao"
+        :erro-envio="erroEnvio"
+        @fechar="modalCompartilharAberto = false"
+        @compartilhar="chat.enviarParaAprovacao"
+      />
+
+      <!-- Conteúdo centralizado de até 832px (AgentRes e Input do protótipo 427:694) -->
+      <div class="conversa-conteudo">
+        <!-- Aviso de campanha desatualizada no topo da conversa (427:694) -->
+        <p
+          v-if="etapaAprovacao === 'desatualizada'"
+          class="chat-aviso-desatualizada"
+          role="status"
+        >
+          A campanha mudou depois da simulação: simule de novo para compartilhar.
+        </p>
+
+        <div class="messages" aria-live="polite">
+          <template v-for="mensagem in mensagens" :key="mensagem.id">
+            <FerramentasDropdown
+              v-if="mensagem.papel === 'agente' && mensagem.events && mensagem.events.length > 0"
+              :events="mensagem.events"
+            />
+            <ResultadoSimulacao
+              v-if="mensagem.resultado"
+              :resultado="mensagem.resultado"
+              @aplicar-cenario="chat.aplicarCenario"
+            />
+            <SpeechBubble v-else :message="mensagem.texto" :papel="mensagem.papel" />
+          </template>
+          <p v-if="aguardandoLana" class="pensando">A Lana está escrevendo…</p>
+          <p v-if="simulando" class="pensando">
+            <template v-if="etapaSimulacao">{{ etapaSimulacao }} · </template>A Lana está gerando o código da regra e simulando sobre os dados reais…
+          </p>
+
+          <div class="flex items-center gap-3 self-start">
+            <i class="bi bi-info-circle text-label text-gray-txt2-dark"></i>
+            <p class="text-label text-gray-txt2-dark">Até a Lana pode cometer erros! Valide todas as informações antes de compartilhar uma campanha.</p>
+          </div>
+          <div ref="fimDaConversa" class="fim-da-conversa" />
+        </div>
+
+        <div class="chat-input">
+          <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar" />
+        </div>
       </div>
-      <!-- Recolhida, a faixa inteira é o botão de abrir: alvo grande, fácil de acertar. -->
-      <button type="button" class="ficha-trilho" :tabindex="fichaRecolhida ? 0 : -1"
-        :aria-hidden="!fichaRecolhida" aria-label="Abrir o painel da campanha" title="Abrir o painel da campanha"
-        @click="fichaRecolhida = false">
-        <i class="bi bi-layout-sidebar-inset-reverse ficha-trilho-icone" aria-hidden="true" />
-        <span class="ficha-trilho-nome">
-          <span class="ficha-trilho-ponto" :class="camposVazios.length ? 'ponto--pendente' : 'ponto--pronta'" />
-          Campanha, {{ statusFicha }}
-        </span>
-      </button>
+    </div>
+
+    <!-- Painel de simulação (tab-simulacao, nó 641:1860): 500px, altura inteira da janela -->
+    <aside
+      v-if="regra && painelAberto"
+      id="tab-simulacao"
+      class="tab-simulacao"
+    >
+      <ParametrosPanel
+        :regra="regra"
+        :campos-vazios="camposVazios"
+        :pode-simular="podeSimular"
+        :simulando="simulando"
+        :ocupado="ocupado"
+        @alterar="chat.atualizarParametro"
+        @simular="chat.simular"
+        @fechar="painelAberto = false"
+      />
     </aside>
   </div>
 </template>
 
-
 <style scoped>
+/* Página do chat: sem limite fixo de 1000px na página quando há conversa (protótipo 427:694) */
 .chat-page {
   width: 100%;
-  max-width: 1000px;
   min-height: 100vh;
-  margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  padding: 20px 24px 0;
+  flex-direction: row;
+  align-items: stretch;
 }
 
-.empty-state {
-  gap: 56px;
+/* Estado vazio (sem mensagens): centralizado na página, sem barra nem painel */
+.chat-page.empty-state {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px 24px 0;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+}
+
+.conversa-vazia {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 56px;
 }
 
 .welcome {
@@ -163,12 +230,47 @@ watch(() => mensagens.value.length, async () => {
   margin: -4px 0 0;
 }
 
+/* Coluna da conversa: ocupa toda a largura entre a sidebar e o painel */
+.conversa {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Conteúdo da conversa centralizado em até 832px com 24px de respiro (427:694) */
+.conversa-conteudo {
+  width: 100%;
+  max-width: 832px;
+  margin: 0 auto;
+  padding: 24px 24px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* Frase da etapa desatualizada no topo da conversa (Leo, 28/10) */
+.chat-aviso-desatualizada {
+  color: var(--color-orange);
+  font-family: var(--font-raleway);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: color-mix(in srgb, var(--color-orange) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-orange) 30%, transparent);
+  align-self: stretch;
+  text-align: center;
+}
+
 .messages {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 12px;
+  gap: 16px;
   padding-bottom: 16px;
 }
 
@@ -180,127 +282,46 @@ watch(() => mensagens.value.length, async () => {
   background-color: var(--color-black-bg1);
 }
 
-/* Na tela inicial o campo fica no meio da página: sem o fundo que o separa da conversa. */
-.empty-state .chat-input {
+.chat-input--empty {
   padding-bottom: 0;
   background-color: transparent;
 }
 
-.conversa {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  gap: inherit;
-  justify-content: inherit;
-}
-
-/* Com a ficha, a página usa a largura toda: a ficha encosta na borda direita (16 px) e a
-   conversa fica centralizada no espaço que sobra, como o canvas do ChatGPT. */
-.com-ficha {
-  max-width: none;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 20px;
-  padding-right: 16px;
-}
-
-.com-ficha .conversa {
-  width: 100%;
-  max-width: 860px;
-  margin: 0 auto;
-}
-
-.ficha-lateral {
+/* Painel de simulação (tab-simulacao, nó 641:1860): 500px, altura inteira, colado à direita */
+.tab-simulacao {
   position: sticky;
-  top: 16px;
-  width: 360px;
+  top: 0;
+  height: 100vh;
+  width: 500px;
   flex-shrink: 0;
-  border-radius: 10px;
   background-color: var(--color-black-bg2);
-  overflow: hidden;
-  transition: width 0.25s ease;
-}
-
-.ficha-lateral--recolhida {
-  width: 44px;
-}
-
-/* O conteúdo mantém a largura aberta e é cortado enquanto a ficha encolhe, sem reflow. */
-.ficha-conteudo {
-  width: 360px;
-  transition: opacity 0.15s ease;
-}
-
-.ficha-lateral--recolhida .ficha-conteudo {
-  opacity: 0;
-}
-
-.ficha-trilho {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  border: none;
-  border-radius: inherit;
-  background-color: var(--color-black-bg2);
-  color: var(--color-gray-txt2-dark);
-  font-family: var(--font-raleway);
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease, background-color 0.15s, color 0.15s;
+  padding: 40px 42px;
+  box-sizing: border-box;
+  z-index: 20;
 }
 
-.ficha-lateral--recolhida .ficha-trilho {
-  opacity: 1;
-  pointer-events: auto;
-  transition-delay: 0.1s, 0s, 0s;
+/* Em telas com menos de 1200px, o painel aberto vira gaveta por cima da conversa (427:694) */
+@media (max-width: 1199px) {
+  .tab-simulacao {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: min(500px, 100vw);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+  }
 }
 
-.ficha-trilho:hover {
-  background-color: color-mix(in srgb, var(--color-white-txt1) 6%, var(--color-black-bg2));
-  color: var(--color-white-txt1);
-}
-
-.ficha-trilho:focus-visible {
-  outline: 2px solid var(--color-blue);
-  outline-offset: -2px;
-}
-
-.ficha-trilho-icone {
-  font-size: 16px;
-}
-
-/* O nome fica na vertical, como as abas recolhidas do Linear e do Figma. */
-.ficha-trilho-nome {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  white-space: nowrap;
-  writing-mode: vertical-rl;
-}
-
-.ficha-trilho-ponto {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.ponto--pendente {
-  background-color: var(--color-orange);
-}
-
-.ponto--pronta {
-  background-color: var(--color-green);
+@media (max-width: 600px) {
+  .tab-simulacao {
+    padding: 24px 16px;
+  }
 }
 
 .fim-da-conversa {
-  /* A caixa de mensagem é fixa no rodapé; sem a margem, o fim do resultado ficaria atrás dela. */
   scroll-margin-bottom: 140px;
 }
 
@@ -310,55 +331,5 @@ watch(() => mensagens.value.length, async () => {
   font-family: var(--font-raleway);
   font-size: 14px;
   font-style: italic;
-}
-
-@media (max-width: 900px) {
-  /* Espaço no topo para o botão flutuante da barra lateral. */
-  .chat-page {
-    padding: 60px 16px 0;
-  }
-
-  .com-ficha {
-    flex-direction: column;
-    align-items: stretch;
-    padding-right: 16px;
-  }
-
-  /* No celular a ficha vem antes da conversa, para o usuário ver o que falta preencher. */
-  .ficha-lateral {
-    position: static;
-    order: -1;
-    width: 100%;
-  }
-
-  .ficha-lateral--recolhida {
-    width: 100%;
-    height: 44px;
-  }
-
-  .ficha-conteudo {
-    width: 100%;
-  }
-
-  .ficha-lateral :deep(.ficha) {
-    height: auto;
-  }
-
-  .ficha-trilho {
-    flex-direction: row;
-    padding: 0 14px;
-  }
-
-  .ficha-trilho-nome {
-    writing-mode: horizontal-tb;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ficha-lateral,
-  .ficha-conteudo,
-  .ficha-trilho {
-    transition: none;
-  }
 }
 </style>

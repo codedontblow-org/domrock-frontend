@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BotoesCampanha from '../components/BotoesCampanha.vue'
-import ResumoCampanha from '../components/ResumoCampanha.vue'
 
 describe('BotoesCampanha', () => {
   it('mostra um botão por item de `acoes`, na ordem do backend', () => {
@@ -39,21 +38,5 @@ describe('BotoesCampanha', () => {
 
     expect(wrapper.text()).toContain('Solicitar cancelamento')
     expect(wrapper.emitted('acao')).toBeUndefined()
-  })
-})
-
-describe('ResumoCampanha', () => {
-  it('mostra nome, status e versão da campanha da conversa', () => {
-    const wrapper = mount(ResumoCampanha, { props: { nome: 'Natal 2025', status: 'AGUARDANDO_APROVACAO', versao: 1 } })
-
-    expect(wrapper.text()).toContain('Natal 2025')
-    expect(wrapper.text()).toContain('Aguardando aprovação')
-    expect(wrapper.text()).toContain('v1')
-  })
-
-  it('sem versão (nunca submetida) não mostra o número', () => {
-    const wrapper = mount(ResumoCampanha, { props: { nome: 'Natal 2025', status: 'RASCUNHO', versao: null } })
-
-    expect(wrapper.find('.resumo-campanha-versao').exists()).toBe(false)
   })
 })

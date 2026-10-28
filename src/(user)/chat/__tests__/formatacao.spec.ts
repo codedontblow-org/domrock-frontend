@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { formatarCelula, formatarMilhares, lerDecimal, lerReaisInteiros, saudacao } from '../formatacao'
+import {
+  dataLocal, formatarCelula, formatarData, formatarMilhares, formatarPercentual, formatarPercentualFixo,
+  formatarTrecho, lerDecimal, lerReaisInteiros, saudacao,
+} from '../formatacao'
 
 describe('formatação dos campos da campanha', () => {
   it('lê reais inteiros ignorando pontos, prefixo e letras', () => {
@@ -36,5 +39,31 @@ describe('células dos dados retornados pela consulta', () => {
     expect(formatarCelula(null)).toBe('—')
     expect(formatarCelula('AZUL')).toBe('AZUL')
     expect(formatarCelula({ a: 1 })).toBe('{"a":1}')
+  })
+})
+
+describe('formatação de data, trecho e percentual (A6-75)', () => {
+  it('formata data ISO ou YYYY-MM-DD em dd/mm/aaaa', () => {
+    expect(formatarData('2025-11-24')).toBe('24/11/2025')
+    expect(formatarData('2026-10-15T14:02:00Z')).toBe('15/10/2026')
+    expect(formatarData(null)).toBe('Não informado')
+  })
+
+  it('formata trechos de datas (um dia, mesmo mês, meses diferentes)', () => {
+    expect(formatarTrecho('2025-11-24', '2025-11-24')).toBe('24/11')
+    expect(formatarTrecho('2025-11-25', '2025-11-30')).toBe('25 a 30/11')
+    expect(formatarTrecho('2025-11-25', '2025-12-05')).toBe('25/11 a 05/12')
+  })
+
+  it('data local formata Date no fuso local sem avançar o dia', () => {
+    const data = new Date(2026, 9, 27, 23, 0)
+    expect(dataLocal(data)).toBe('27/10/2026')
+  })
+
+  it('formatarPercentual e formatarPercentualFixo formatam percentuais (A6-75)', () => {
+    expect(formatarPercentual(1)).toBe('1%')
+    expect(formatarPercentual(0.49)).toBe('0,49%')
+    expect(formatarPercentualFixo(1)).toBe('1,00%')
+    expect(formatarPercentualFixo(0.5)).toBe('0,50%')
   })
 })

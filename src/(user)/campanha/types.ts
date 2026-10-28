@@ -1,4 +1,4 @@
-import type { RegraCampanha, ResultadoSimulacao } from '../chat/types'
+import type { ConflitoCampanha, RegraCampanha, ResultadoSimulacao } from '../chat/types'
 
 export type StatusCampanha = 'RASCUNHO' | 'AGUARDANDO_APROVACAO' | 'APROVADA' | 'REPROVADA' | 'ARQUIVADA'
 
@@ -177,6 +177,7 @@ export interface CampanhaAprovacao {
   impacto?: ItemDetalhe[]
   marcas?: string[]
   cargos?: string[]
+  conflitos?: ConflitoCampanha[]
   interferencias?: Interferencia[]
   /** As `acoes` da versão; ausente enquanto ela carrega (nenhum botão aparece). */
   acoes?: AcaoVersao[]

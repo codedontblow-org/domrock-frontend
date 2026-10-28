@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { renderizarMarkdown } from '../../chat/formatacao'
+import AvisoConflitos from '../../chat/components/AvisoConflitos.vue'
 import { montarJustificativa } from '../montagem'
 import type { AcaoVersao, CampanhaAprovacao, Interferencia } from '../types'
 
@@ -149,6 +150,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
           <p v-else-if="campanha.detalhe === 'indisponivel'" class="bloco bloco-ajuda" role="alert">
             Não foi possível carregar a simulação desta versão. Recarregue a página para tentar de novo.
           </p>
+
+          <AvisoConflitos v-if="campanha.detalhe === 'pronto'" :conflitos="campanha.conflitos" />
 
           <section v-if="campanha.acrescimos?.length" class="bloco">
             <h4>Acréscimo</h4>

@@ -28,3 +28,15 @@ const NOMES_OPCAO: Record<string, Record<string, string>> = {
 export function nomeDaOpcao(key: string, id: string, rotuloOriginal: string): string {
   return NOMES_OPCAO[key]?.[id] ?? rotuloOriginal
 }
+
+/** Rótulo da marca. Ex.: rotuloMarca('10') -> 'Preto' */
+export function rotuloMarca(codigo: string): string {
+  return NOMES_MARCA[codigo] ?? codigo
+}
+
+/** Rótulo do cargo com código entre parênteses. Ex.: rotuloCargo('150') -> 'Gerente (150)' */
+export function rotuloCargo(codigo: string): string {
+  if (codigo.includes('(')) return codigo
+  const nome = NOMES_CARGO[codigo]
+  return nome ? `${nome} (${codigo})` : codigo
+}

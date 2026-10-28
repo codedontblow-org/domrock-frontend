@@ -139,6 +139,7 @@ export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): Ca
     simulacaoId: versao.simulacao_id,
     cargos: cargos.map((codigo) => NOMES_CARGO[codigo] ?? codigo),
     marcas: marcas.map((codigo) => NOMES_MARCA[codigo] ?? codigo),
+    conflitos: resultado.conflitos,
     acoes: versao.acoes,
     avisoResimulacao: avisoDeResimulacao(versao),
     custoResimulado: versao.resimulacao ? formatarMoeda(versao.resimulacao.resultado.totais.diferenca) : null,
