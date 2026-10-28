@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@source inline("{text,bg,border,outline,ring,decoration,accent,caret,fill,stroke}-{red,orange,green,blue,purple}");
+@source inline("{text,bg,border,outline,ring,decoration,accent,caret,fill,stroke}-{red,orange,green,blue,purple,yellow}");
 
 
 @theme {
@@ -116,6 +116,12 @@
   --color-red: var(--red);
 
 
+  /* ========================================
+     YELLOW - aviso de conflito, A6-75; o protótipo não tem amarelo
+     ======================================== */
+
+  --color-yellow: var(--yellow);
+
 
    /* ========================================
      ANIMATIONS
@@ -170,6 +176,11 @@
   /* Red */
 
   --red: #C83E3C;
+
+
+  /* Yellow - aviso de conflito, A6-75; o protótipo não tem amarelo */
+
+  --yellow: #EAB308;
 }
 
 
@@ -219,6 +230,11 @@
   /* Red */
 
   --red: #F06260;
+
+
+  /* Yellow - aviso de conflito, A6-75; o protótipo não tem amarelo */
+
+  --yellow: #FACC15;
 }
 
 

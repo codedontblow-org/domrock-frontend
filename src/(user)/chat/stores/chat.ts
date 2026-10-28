@@ -2,10 +2,11 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/services/api'
 import { criarServicoCampanha, descreverFalha, type ServicoCampanha } from '../services/campanha'
+import { dataLocal } from '../formatacao'
 import {
   ETAPAS_DE_ENVIO,
   type CampanhaSalva, type CenarioAlternativo, type EtapaAprovacao, type MensagemChat, type PapelMensagem,
-  type RegraCampanha, type ValorParametro,
+  type RegraCampanha, type ResultadoSimulacao, type ValorParametro,
 } from '../types'
 
 let servicoCampanha: ServicoCampanha = criarServicoCampanha(api)
@@ -20,6 +21,9 @@ function novoChatId(): string {
 }
 
 export const useChatStore = defineStore('chat', () => {
+  /** Data local de início da conversa (evita UTC avançar o dia após 21h). */
+  const dataInicio = ref(dataLocal())
+  const erroEnvio = ref<string | null>(null)
   const chatId = ref(novoChatId())
   const mensagens = ref<MensagemChat[]>([])
   const regra = ref<RegraCampanha | null>(null)
@@ -52,6 +56,15 @@ export const useChatStore = defineStore('chat', () => {
     if (simulacaoId.value === null) return 'sem_simulacao'
     if (JSON.stringify(regra.value) !== regraSimulada.value) return 'desatualizada'
     return cabeNoOrcamento.value ? 'pronta' : 'fora_do_orcamento'
+  })
+
+  /** Último resultado de simulação nas mensagens, sem guardar cópia em ref separada. */
+  const ultimoResultado = computed<ResultadoSimulacao | null>(() => {
+    for (let i = mensagens.value.length - 1; i >= 0; i--) {
+      const res = mensagens.value[i]?.resultado
+      if (res) return res
+    }
+    return null
   })
 
   function adicionar(papel: PapelMensagem, texto: string, extras: Partial<MensagemChat> = {}): void {
@@ -117,6 +130,7 @@ export const useChatStore = defineStore('chat', () => {
     if (!ETAPAS_DE_ENVIO.includes(etapaAprovacao.value) || ocupado.value || simulacaoId.value === null || !nome.trim()) {
       return
     }
+    erroEnvio.value = null
     enviandoAprovacao.value = true
     try {
       campanha.value ??= await servicoCampanha.salvarCampanha(chatId.value, simulacaoId.value, nome.trim())
@@ -124,7 +138,9 @@ export const useChatStore = defineStore('chat', () => {
       enviadaParaAprovacao.value = true
       adicionar('agente', `Enviei "${nome.trim()}" para aprovação. Ela aparece em Campanhas, na aba Aguardando Aprovação.`)
     } catch (erro) {
-      adicionar('erro', descreverFalha(erro))
+      const falha = descreverFalha(erro)
+      erroEnvio.value = falha
+      adicionar('erro', falha)
     } finally {
       enviandoAprovacao.value = false
     }
@@ -132,6 +148,8 @@ export const useChatStore = defineStore('chat', () => {
 
   /** Começa uma conversa nova, sem nada da anterior. */
   function novaConversa(): void {
+    dataInicio.value = dataLocal()
+    erroEnvio.value = null
     chatId.value = novoChatId()
     mensagens.value = []
     regra.value = null
@@ -166,8 +184,9 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    chatId, mensagens, regra, aguardandoLana, simulando, etapaSimulacao, ocupado, camposVazios, podeSimular,
-    etapaAprovacao, somenteLeitura, campanha, enviar, atualizarParametro, aplicarCenario, simular, enviarParaAprovacao,
+    dataInicio, erroEnvio, chatId, mensagens, regra, aguardandoLana, simulando, etapaSimulacao, ocupado,
+    camposVazios, podeSimular, etapaAprovacao, somenteLeitura, campanha, ultimoResultado,
+    enviar, atualizarParametro, aplicarCenario, simular, enviarParaAprovacao,
     novaConversa, abrirSimulacao,
   }
 })

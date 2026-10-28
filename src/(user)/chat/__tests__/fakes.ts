@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import type { ServicoCampanha } from '../services/campanha'
 import type {
-  CampanhaSalva, FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento,
+  CampanhaSalva, ComissaoNoTrecho, ConflitoCampanha, FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento,
   SimulacaoConcluida, SimulacaoCriada,
 } from '../types'
 
@@ -214,5 +214,192 @@ export class FakeEspera {
 
   readonly esperar = async (ms: number): Promise<void> => {
     this.esperas.push(ms)
+  }
+}
+
+export function exemplo2Contrato(): { comissao_periodo: ComissaoNoTrecho[]; conflitos: ConflitoCampanha[] } {
+  return {
+    comissao_periodo: [
+      {
+        marca: '10',
+        cargo: '150',
+        data_inicio: '2025-11-24',
+        data_fim: '2025-11-24',
+        pct_base: 1.0,
+        pct_vigente: 2.5,
+        pct_com_campanha: 3.0,
+        historico: [
+          {
+            campanha_id: null,
+            versao: null,
+            tipo: 'ACRESCIMO',
+            nome: 'Especificação nov/25, item 5g',
+            data_inicio: '2025-11-24',
+            data_fim: '2025-11-30',
+            pct_acrescimo: 0.5,
+            pct_novo: null,
+            autor: null,
+            aprovador: null,
+            aprovada_em: null,
+            justificativa: 'Gerentes: +0,5% nas vendas de 24 a 30/11 (Black Friday)',
+          },
+          {
+            campanha_id: 9,
+            versao: 1,
+            tipo: 'ACRESCIMO',
+            nome: 'Campanha A',
+            data_inicio: '2025-11-20',
+            data_fim: '2025-11-30',
+            pct_acrescimo: 1.0,
+            pct_novo: null,
+            autor: 'Gabriela',
+            aprovador: 'Sérgio',
+            aprovada_em: '2026-10-15T14:02:00Z',
+            justificativa: 'Reforço da última semana de novembro',
+          },
+        ],
+      },
+      {
+        marca: '10',
+        cargo: '150',
+        data_inicio: '2025-11-25',
+        data_fim: '2025-11-30',
+        pct_base: 1.0,
+        pct_vigente: 3.0,
+        pct_com_campanha: 3.5,
+        historico: [
+          {
+            campanha_id: null,
+            versao: null,
+            tipo: 'ACRESCIMO',
+            nome: 'Especificação nov/25, item 5g',
+            data_inicio: '2025-11-24',
+            data_fim: '2025-11-30',
+            pct_acrescimo: 0.5,
+            pct_novo: null,
+            autor: null,
+            aprovador: null,
+            aprovada_em: null,
+            justificativa: 'Gerentes: +0,5% nas vendas de 24 a 30/11 (Black Friday)',
+          },
+          {
+            campanha_id: 9,
+            versao: 1,
+            tipo: 'ACRESCIMO',
+            nome: 'Campanha A',
+            data_inicio: '2025-11-20',
+            data_fim: '2025-11-30',
+            pct_acrescimo: 1.0,
+            pct_novo: null,
+            autor: 'Gabriela',
+            aprovador: 'Sérgio',
+            aprovada_em: '2026-10-15T14:02:00Z',
+            justificativa: 'Reforço da última semana de novembro',
+          },
+          {
+            campanha_id: 10,
+            versao: 1,
+            tipo: 'ACRESCIMO',
+            nome: 'Campanha B',
+            data_inicio: '2025-11-25',
+            data_fim: '2025-12-05',
+            pct_acrescimo: 0.5,
+            pct_novo: null,
+            autor: 'Gabriela',
+            aprovador: 'Sílvia',
+            aprovada_em: '2026-10-16T10:30:00Z',
+            justificativa: 'Gerentes puxam a virada para dezembro',
+          },
+        ],
+      },
+    ],
+    conflitos: [
+      {
+        campanha_id: null,
+        versao: null,
+        tipo: 'ACRESCIMO',
+        nome: 'Especificação nov/25, item 5g',
+        status: 'APROVADA',
+        autor: null,
+        data_inicio: '2025-11-24',
+        data_fim: '2025-11-30',
+        sobreposicao: { data_inicio: '2025-11-24', data_fim: '2025-11-30' },
+        marcas: ['10'],
+        cargos: ['150'],
+      },
+      {
+        campanha_id: 9,
+        versao: 1,
+        tipo: 'ACRESCIMO',
+        nome: 'Campanha A',
+        status: 'APROVADA',
+        autor: 'Gabriela',
+        data_inicio: '2025-11-20',
+        data_fim: '2025-11-30',
+        sobreposicao: { data_inicio: '2025-11-24', data_fim: '2025-11-30' },
+        marcas: ['10'],
+        cargos: ['150'],
+      },
+      {
+        campanha_id: 10,
+        versao: 1,
+        tipo: 'ACRESCIMO',
+        nome: 'Campanha B',
+        status: 'APROVADA',
+        autor: 'Gabriela',
+        data_inicio: '2025-11-25',
+        data_fim: '2025-12-05',
+        sobreposicao: { data_inicio: '2025-11-25', data_fim: '2025-11-30' },
+        marcas: ['10'],
+        cargos: ['150'],
+      },
+    ],
+  }
+}
+
+export function exemplo3Contrato(): { comissao_periodo: ComissaoNoTrecho[]; conflitos: ConflitoCampanha[] } {
+  return {
+    comissao_periodo: [
+      {
+        marca: '10',
+        cargo: '100',
+        data_inicio: '2025-09-01',
+        data_fim: '2025-09-30',
+        pct_base: 2.5,
+        pct_vigente: 3.0,
+        pct_com_campanha: 3.5,
+        historico: [
+          {
+            campanha_id: null,
+            versao: null,
+            tipo: 'SUBSTITUICAO',
+            nome: 'Especificação set/25, item 3g',
+            data_inicio: '2025-09-01',
+            data_fim: '2025-09-30',
+            pct_acrescimo: null,
+            pct_novo: 3.0,
+            autor: null,
+            aprovador: null,
+            aprovada_em: null,
+            justificativa: 'Somente em set/25, a marca 10 usa a % da marca 20 em todos os cargos',
+          },
+        ],
+      },
+    ],
+    conflitos: [
+      {
+        campanha_id: null,
+        versao: null,
+        tipo: 'SUBSTITUICAO',
+        nome: 'Especificação set/25, item 3g',
+        status: 'APROVADA',
+        autor: null,
+        data_inicio: '2025-09-01',
+        data_fim: '2025-09-30',
+        sobreposicao: { data_inicio: '2025-09-01', data_fim: '2025-09-30' },
+        marcas: ['10'],
+        cargos: ['100'],
+      },
+    ],
   }
 }

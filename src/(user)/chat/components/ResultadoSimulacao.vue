@@ -6,8 +6,10 @@ import {
   textoDiferencaMeta, vereditoDoOrcamento,
 } from '../resultado'
 import type { CenarioAlternativo, ResultadoSimulacao } from '../types'
+import AvisoConflitos from './AvisoConflitos.vue'
 import BlocoResultado from './BlocoResultado.vue'
 import CenariosAlternativos from './CenariosAlternativos.vue'
+import ComissaoPeriodo from './ComissaoPeriodo.vue'
 import DetalhamentoCusto from './DetalhamentoCusto.vue'
 import MedidorResultado from './MedidorResultado.vue'
 import NumerosResultado from './NumerosResultado.vue'
@@ -34,6 +36,8 @@ function aplicar(cenario: CenarioAlternativo): void {
   <article class="resultado" aria-label="Resultado da simulação">
     <h2 class="resultado-titulo">Resultado da simulação</h2>
 
+    <AvisoConflitos :conflitos="resultado.conflitos" />
+
     <BlocoResultado titulo="Meta" :selo="seloDaMeta(meta)" :destaque="pctDaMeta(meta)" legenda="da meta">
       <MedidorResultado :medidor="medidorDaMeta(meta)"
         :descricao="`${pctDaMeta(meta)} da meta, ${textoDiferencaMeta(meta)}`" />
@@ -45,6 +49,7 @@ function aplicar(cenario: CenarioAlternativo): void {
 
     <BlocoResultado titulo="Comissão" :destaque="formatarMoeda(resultado.totais.diferenca)" legenda="de custo adicional">
       <NumerosResultado :itens="numerosDaComissao(resultado.totais, resultado.impacto)" />
+      <ComissaoPeriodo :linhas="resultado.comissao_periodo" />
       <SecaoExpansivel titulo="Onde o custo pesa">
         <DetalhamentoCusto :resultado="resultado" />
       </SecaoExpansivel>
@@ -85,7 +90,7 @@ function aplicar(cenario: CenarioAlternativo): void {
   padding: 24px 24px 12px;
   border: 1px solid rgb(255 255 255 / 6%);
   border-radius: 10px;
-  background-color: var(--color-black-bg2);
+  /* Sem fundo próprio: usa o mesmo fundo do chat (decisão de layout, Leo, 28/10) */
   color: var(--color-white-txt1);
   font-family: var(--font-raleway);
 }

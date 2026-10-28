@@ -7,7 +7,7 @@ import SecaoExpansivel from '../components/SecaoExpansivel.vue'
 import SpeechBubble from '../components/SpeechBubble.vue'
 import { regraBlackFriday, resultadoBlackFriday, resultadoDoCriterio } from './fakes'
 
-const SEM_SIMULACAO = { aprovacao: 'sem_simulacao', ocupado: false } as const
+const SEM_SIMULACAO = { ocupado: false } as const
 
 // Intl.NumberFormat separa "R$" do número com espaço não separável (U+00A0).
 function texto(wrapper: { text: () => string }): string {
@@ -63,33 +63,14 @@ describe('ParametrosPanel', () => {
     expect(wrapper.find('.ficha-simular').attributes('disabled')).toBeDefined()
   })
 
-  it('só oferece enviar para aprovação depois de simular', () => {
+  it('emite simulação ao clicar em simular campanha', async () => {
     const wrapper = mount(ParametrosPanel, {
       props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, ...SEM_SIMULACAO },
     })
 
-    expect(wrapper.find('.ficha-enviar').exists()).toBe(false)
-  })
+    await wrapper.find('.ficha-simular').trigger('click')
 
-  it('envia o nome digitado e exige um nome', async () => {
-    const wrapper = mount(ParametrosPanel, {
-      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, aprovacao: 'pronta', ocupado: false },
-    })
-    expect(wrapper.find('.ficha-enviar').attributes('disabled')).toBeDefined()
-
-    await wrapper.find('.ficha-nome').setValue('Natal 2025')
-    await wrapper.find('.ficha-aprovacao').trigger('submit')
-
-    expect(wrapper.emitted('enviarAprovacao')?.[0]).toEqual(['Natal 2025'])
-  })
-
-  it('avisa que precisa simular de novo quando a campanha mudou', () => {
-    const wrapper = mount(ParametrosPanel, {
-      props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, aprovacao: 'desatualizada', ocupado: false },
-    })
-
-    expect(wrapper.find('.ficha-enviar').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('.ficha-aprovacao').text()).toContain('simule de novo')
+    expect(wrapper.emitted('simular')).toHaveLength(1)
   })
 })
 
@@ -137,15 +118,15 @@ describe('Orçamento em Extras (A6-72, padrão do Figma do time)', () => {
   })
 })
 
-describe('Recolher o painel', () => {
-  it('pede para recolher com um botão que tem nome acessível', async () => {
+describe('Fechar o painel de simulação (protótipo 641:1848)', () => {
+  it('fecha o painel com o botão X acessível', async () => {
     const wrapper = mount(ParametrosPanel, {
       props: { regra: regraBlackFriday(), camposVazios: [], podeSimular: true, simulando: false, ...SEM_SIMULACAO },
     })
 
-    await wrapper.find('button[aria-label="Recolher o painel"]').trigger('click')
+    await wrapper.find('button[aria-label="Fechar o painel de simulação"]').trigger('click')
 
-    expect(wrapper.emitted('recolher')).toHaveLength(1)
+    expect(wrapper.emitted('fechar')).toHaveLength(1)
   })
 })
 
