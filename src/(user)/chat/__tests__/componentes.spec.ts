@@ -189,10 +189,12 @@ describe('ResultadoSimulacao (A6-72)', () => {
   })
 
   it('não mostra o código Python a ninguém (decisão do PO, 26/10)', () => {
-    const wrapper = mount(ResultadoSimulacao, { props: { resultado: resultadoBlackFriday() } })
+    const resultado = resultadoBlackFriday()
+    const wrapper = mount(ResultadoSimulacao, { props: { resultado } })
 
     expect(wrapper.text()).not.toContain('def aplicar_regra')
     expect(wrapper.text()).not.toContain('Código Python')
+    expect(wrapper.html()).not.toContain(resultado.codigo)
   })
 })
 

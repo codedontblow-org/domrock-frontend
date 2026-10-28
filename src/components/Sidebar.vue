@@ -2,9 +2,11 @@
 import { onBeforeUnmount, onMounted, ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import logo from '@/assets/logo.svg'
-import type { MenuItem, Chat, User } from '@/types/sidebar'
+import type { MenuItem, User } from '@/types/sidebar'
 
 import { encerrarSessao } from '@/services/auth'
+import { useSeusChats } from '@/(user)/campanhas/useSeusChats'
+import { useChatStore } from '@/(user)/chat/stores/chat'
 
 const router = useRouter()
 const route = useRoute()
@@ -31,10 +33,13 @@ function acompanharLargura(consulta: MediaQueryList | MediaQueryListEvent): void
   isCollapsed.value = consulta.matches
 }
 
+const { chats, carregar: carregarChats } = useSeusChats()
+
 onMounted(() => {
   consultaCelular = window.matchMedia(CONSULTA_CELULAR)
   acompanharLargura(consultaCelular)
   consultaCelular.addEventListener('change', acompanharLargura)
+  if (profile.value !== 'ADMIN') carregarChats()
 })
 
 onBeforeUnmount(() => consultaCelular?.removeEventListener('change', acompanharLargura))
@@ -64,14 +69,6 @@ const menuItems = computed<MenuItem[]> (() => {
     ]
 })
 
-const chats = ref<Chat[]>([
-  { id: 1, titulo: 'Títulos do chat', data: '16/11' },
-  { id: 2, titulo: 'Títulos do chat', data: '16/11' },
-  { id: 3, titulo: 'Títulos do chat', data: '16/11' },
-  { id: 4, titulo: 'Títulos do chat', data: '16/11' },
-  { id: 5, titulo: 'Títulos do chat', data: '16/11' }
-])
-
 const user = ref<User>({
   nome: username.value,
   cargo: profile.value,
@@ -79,11 +76,24 @@ const user = ref<User>({
 
 const activeItem = ref<string>('nova-campanha')
 
+function navegarParaCampanha(id: number): void {
+  router.push({ name: 'chat', query: { campanha: id } })
+  if (isMobile.value) isCollapsed.value = true
+}
+
 function selectItem(item: MenuItem): void {
   activeItem.value = item.id
+  if (item.id === 'nova-campanha') useChatStore().novaConversa()
   if (item.rota) router.push(item.rota)
   if (isMobile.value) isCollapsed.value = true
 }
+
+watch(
+  () => route?.fullPath,
+  () => {
+    if (profile.value !== 'ADMIN') carregarChats()
+  },
+)
 
 watch(
   () => route?.path,
@@ -152,6 +162,7 @@ watch(
           v-for="chat in chats"
           :key="chat.id"
           class="chat-item"
+          @click="navegarParaCampanha(chat.id)"
         >
           <span class="chat-title">{{ chat.titulo }}</span>
           <span class="chat-date">{{ chat.data }}</span>

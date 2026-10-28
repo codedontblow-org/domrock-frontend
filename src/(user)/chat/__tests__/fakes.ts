@@ -1,8 +1,8 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import type { ServicoCampanha } from '../services/campanha'
 import type {
-  CampanhaSalva, ComissaoNoTrecho, ConflitoCampanha, FalhaSimulacao, RegraCampanha, RespostaChat, ResultadoSimulacao, SimulacaoAndamento,
-  SimulacaoConcluida, SimulacaoCriada,
+  CampanhaSalva, ComissaoNoTrecho, ConflitoCampanha, ConversaGravada, FalhaSimulacao, MensagemGravada, RegraCampanha, RespostaChat,
+  ResultadoSimulacao, SimulacaoAndamento, SimulacaoConcluida, SimulacaoCriada,
 } from '../types'
 
 export function regraBlackFriday(sobrescrever: Partial<Record<string, unknown>> = {}): RegraCampanha {
@@ -114,12 +114,32 @@ export class FakeServicoCampanha implements ServicoCampanha {
   proximaSimulacaoId = 345
   salvamentos: Array<{ chatId: string; simulacaoId: number; nome: string }> = []
   submissoes: number[] = []
+  chatsConsultados: string[] = []
+  conversaGravada: ConversaGravada = {
+    chat_id: 'chat-da-gabriela',
+    campanha_id: 12,
+    mensagens: [
+      { id: 101, papel: 'usuario', texto: 'Quero +1%', criada_em: '2026-10-21T12:58:10Z' },
+      { id: 102, papel: 'lana', texto: 'Preenchi a ficha', regra: regraBlackFriday(), trilha: null, criada_em: '2026-10-21T12:58:14Z' },
+    ],
+  }
+  falhaBuscarMensagens: unknown = null
   /** Falha do próximo submeter (só dele), para testar a nova tentativa. */
   falhaSubmeter: unknown = null
+  segurarConversar = false
+  liberarConversar: (() => void) | null = null
   private liberar: (() => void) | null = null
+
+  async buscarMensagens(chatId: string): Promise<ConversaGravada> {
+    this.chatsConsultados.push(chatId)
+    if (this.falhaBuscarMensagens) throw this.falhaBuscarMensagens
+    if (this.falha) throw this.falha
+    return { ...this.conversaGravada, chat_id: chatId }
+  }
 
   async conversar(chatId: string, mensagem: string, regra: RegraCampanha | null): Promise<RespostaChat> {
     this.conversas.push({ chatId, mensagem, regra: regra ? JSON.parse(JSON.stringify(regra)) : null })
+    if (this.segurarConversar) await new Promise<void>((resolve) => { this.liberarConversar = resolve })
     if (this.falha) throw this.falha
     return this.respostaChat
   }

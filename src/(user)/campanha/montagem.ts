@@ -177,11 +177,13 @@ export function linhaAprovada(item: CampanhaAprovada): Tabela {
 }
 
 export interface DetalheAprovada extends ListaCampanha {
+  id: number
   simulacaoId: number
 }
 
 export function detalheAprovada(item: CampanhaAprovada): DetalheAprovada {
   return {
+    id: item.id,
     titulo: item.nome,
     inicio: diaMesDeData(item.periodo.data_inicio),
     fim: diaMesDeData(item.periodo.data_fim),

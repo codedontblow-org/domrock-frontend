@@ -37,10 +37,10 @@ describe('PainelAprovacao', () => {
     painel.unmount()
   })
 
-  it('o link do chat abre a conversa da simulação da versão', () => {
+  it('o link do chat abre a conversa da campanha (A6-92)', () => {
     const painel = montar()
 
-    expect(JSON.parse(painel.find('.link-chat').attributes('data-to')!)).toEqual({ name: 'chat', query: { simulacao: 345 } })
+    expect(JSON.parse(painel.find('.link-chat').attributes('data-to')!)).toEqual({ name: 'chat', query: { campanha: 7 } })
     painel.unmount()
   })
 

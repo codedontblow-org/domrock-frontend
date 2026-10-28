@@ -101,3 +101,31 @@ export function formatarTrecho(inicio: string, fim: string): string {
   }
   return `${diaIni}/${mesIni} a ${diaFim}/${mesFim}`
 }
+
+const DIA_MES_FORMATADOR = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
+
+/**
+ * Data curta (dd/mm) no fuso local para a lista de chats.
+ * Ex.: formatarDiaMes('2026-10-21T13:00:12Z') -> '21/10'
+ */
+export function formatarDiaMes(iso: string | null | undefined): string {
+  if (!iso) return ''
+  return DIA_MES_FORMATADOR.format(new Date(iso))
+}
+
+/**
+ * Data e hora curtas (dd/mm hh:mm) no fuso local para mensagens de sistema (status e simulação).
+ * Ex.: formatarDataHoraCurta('2026-10-21T14:20:00Z') -> '21/10 11:20' (dependendo do fuso local)
+ */
+export function formatarDataHoraCurta(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const partes = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(new Date(iso))
+  const parte = (tipo: Intl.DateTimeFormatPartTypes) =>
+    partes.find((p) => p.type === tipo)?.value ?? ''
+  return `${parte('day')}/${parte('month')} ${parte('hour')}:${parte('minute')}`
+}

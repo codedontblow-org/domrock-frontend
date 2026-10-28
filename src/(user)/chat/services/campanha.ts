@@ -1,6 +1,6 @@
 import { isAxiosError, type AxiosInstance } from 'axios'
 import type {
-  CampanhaSalva, FalhaSimulacao, RegraCampanha, RespostaChat, SimulacaoAndamento, SimulacaoConcluida, SimulacaoCriada,
+  CampanhaSalva, ConversaGravada, FalhaSimulacao, RegraCampanha, RespostaChat, SimulacaoAndamento, SimulacaoConcluida, SimulacaoCriada,
 } from '../types'
 
 /** O contrato 4 combina a consulta do status a cada 2 segundos. */
@@ -64,6 +64,12 @@ export function criarServicoCampanha(http: AxiosInstance, esperar: (ms: number) 
     /** Uma simulação já feita, com a conversa (`chat_id`), a ficha e o resultado (contrato 4.2). */
     async buscarSimulacao(id: number): Promise<SimulacaoAndamento> {
       const { data } = await http.get<SimulacaoAndamento>(`/api/simulacoes/${id}`)
+      return data
+    },
+
+    /** Reabre a conversa gravada no banco com suas mensagens em ordem (contrato 3.2). */
+    async buscarMensagens(chatId: string): Promise<ConversaGravada> {
+      const { data } = await http.get<ConversaGravada>(`/api/chat/${chatId}/mensagens`)
       return data
     },
 
