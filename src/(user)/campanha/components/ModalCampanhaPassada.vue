@@ -63,7 +63,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoPressionarTecla))
 
             <RouterLink
               class="link-chat"
-              :to="{ name: 'chat', query: { simulacao: campanha.simulacaoId } }"
+              :to="{ name: 'chat', query: { campanha: campanha.id } }"
             >
               <i class="bi bi-chat-left-text-fill"></i>
               Link para o chat

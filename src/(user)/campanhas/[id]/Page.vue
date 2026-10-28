@@ -153,15 +153,15 @@ watch(() => route.params.id, (id) => {
           <p v-else class="sem-dados">Nenhuma ficha ou resultado disponível.</p>
         </div>
 
-        <!-- Aba: Conversa. A conversa gravada chega com o A6-65 (rota 3.2); até lá, o chat reabre a simulação. -->
+        <!-- Aba: Conversa (contrato 3.2, A6-92) -->
         <div v-else-if="abaAtiva === 'conversa'">
           <RouterLink
-            v-if="simulacao"
+            v-if="campanhaAtual"
             class="link-conversa"
-            :to="{ name: 'chat', query: { simulacao: simulacao.id } }"
+            :to="{ name: 'chat', query: { campanha: campanhaAtual.id } }"
           >
             <i class="bi bi-chat-left-text" aria-hidden="true" />
-            Abrir o pedido e o resultado no chat
+            Abrir a conversa no chat
           </RouterLink>
           <p v-else class="sem-dados">Nenhuma conversa registrada.</p>
         </div>

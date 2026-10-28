@@ -95,13 +95,14 @@ describe('Detalhe da campanha', () => {
     expect(linha).toContain('a meta de R$ 2 milhões está abaixo da venda real do período')
   })
 
-  it('aba Conversa reabre no chat a última simulação, até a conversa gravada (A6-65)', async () => {
+  it('aba Conversa reabre no chat a conversa da campanha (A6-92)', async () => {
     const wrapper = await abrirDetalhe()
 
     await wrapper.findAll('.aba').find((a) => a.text() === 'Conversa')!.trigger('click')
 
     expect(JSON.parse(wrapper.find('.link-conversa').attributes('data-to')!))
-      .toEqual({ name: 'chat', query: { simulacao: 345 } })
+      .toEqual({ name: 'chat', query: { campanha: 12 } })
+    expect(wrapper.find('.link-conversa').text()).toContain('Abrir a conversa no chat')
   })
 
   it('sem orçamento, a ficha mostra o custo e não mostra orçamento nem folga (A6-72)', async () => {

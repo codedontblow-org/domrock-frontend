@@ -49,11 +49,63 @@ export interface EventoAgente {
   result?: unknown
 }
 
+/** Passo registrado na trilha de auditoria montada pelo código (contrato 2.2). */
+export interface PassoTrilha {
+  ordem: number
+  ferramenta: string
+  descricao: string
+  tabelas_acessadas: string[]
+  competencias: string[]
+  filtros: string | null
+  sql_executado: string | null
+  registros_retornados: number | null
+  dados: Record<string, unknown>[] | null
+  tempo_ms: number
+  situacao: string
+  mensagem_erro: string | null
+}
+
+/** Trilha de auditoria que acompanha a resposta da Lana e a simulação (contrato 2.2). */
+export interface TrilhaChat {
+  modelo: string
+  tentativas: number | null
+  premissas: string[]
+  passos: PassoTrilha[]
+}
+
+/** Papéis de mensagem gravados no banco de dados (contrato 3.2). */
+export type PapelMensagemBackend = 'usuario' | 'lana' | 'sistema'
+
+/** Mensagem de sistema da conversa: simulação concluída ou transição de status (contrato 3.2). */
+export type TipoMensagemSistema = 'SIMULACAO' | 'STATUS'
+
+/** Item do histórico devolvido por GET /api/chat/{chat_id}/mensagens (contrato 3.2). */
+export interface MensagemGravada {
+  id: number
+  papel: PapelMensagemBackend
+  texto: string
+  criada_em: string
+  regra?: RegraCampanha | null
+  trilha?: TrilhaChat | null
+  tipo?: TipoMensagemSistema
+  simulacao_id?: number | null
+}
+
+/** Conversa gravada com suas mensagens em ordem (contrato 3.2). */
+export interface ConversaGravada {
+  chat_id: string
+  campanha_id: number | null
+  mensagens: MensagemGravada[]
+}
+
 export interface RespostaChat {
   chat_id: string
   response: string
   regra: RegraCampanha | null
   events?: EventoAgente[]
+  trilha?: TrilhaChat | null
+  mensagens_sistema?: MensagemGravada[]
+  solicitacao?: unknown | null
 }
 
 export interface QuebraDimensao {
@@ -125,6 +177,7 @@ export interface ResultadoSimulacao {
   tentativas: number
   explicacao: string
   observacao?: string
+  trilha?: TrilhaChat | null
 }
 
 export interface FalhaSimulacao {
@@ -189,9 +242,13 @@ export const ETAPAS_DE_ENVIO: readonly EtapaAprovacao[] = ['pronta', 'fora_do_or
 export type PapelMensagem = 'usuario' | 'agente' | 'resultado' | 'erro' | 'sistema'
 
 export interface MensagemChat {
-  id: number
+  id: number | string
+  chave: string
   papel: PapelMensagem
   texto: string
+  tipo?: TipoMensagemSistema
+  simulacao_id?: number | null
+  criada_em?: string
   resultado?: ResultadoSimulacao
   events?: EventoAgente[]
 }

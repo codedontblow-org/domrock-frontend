@@ -6,6 +6,7 @@ import { usuarioLogado } from '@/services/auth'
 import { saudacao } from './formatacao'
 import Input from './components/Input.vue'
 import SpeechBubble from './components/SpeechBubble.vue'
+import MensagemSistema from './components/MensagemSistema.vue'
 import ParametrosPanel from './components/ParametrosPanel.vue'
 import ResultadoSimulacao from './components/ResultadoSimulacao.vue'
 import FerramentasDropdown from './components/FerramentasDropdown.vue'
@@ -17,7 +18,7 @@ import { useChatStore } from './stores/chat'
 const chat = useChatStore()
 const {
   mensagens, regra, aguardandoLana, simulando, etapaSimulacao, camposVazios, podeSimular, etapaAprovacao, ocupado,
-  somenteLeitura, campanha, dataInicio, erroEnvio, ultimoResultado,
+  somenteLeitura, podeVoltarRascunho, editandoCampanha, simulacoesCarregando, campanha, dataInicio, erroEnvio, ultimoResultado,
 } = storeToRefs(chat)
 const rota = useRoute()
 
@@ -26,11 +27,25 @@ const conferencia = computed(() =>
   regra.value ? montarConferencia(regra.value, ultimoResultado.value) : null,
 )
 
-watch(() => rota.query.simulacao, (simulacao) => {
-  const id = Number(simulacao)
-  if (simulacao && Number.isInteger(id)) chat.abrirSimulacao(id)
-  else if (somenteLeitura.value) chat.novaConversa()
-}, { immediate: true })
+const campanhaNaQuery = computed(() => {
+  const c = rota.query.campanha
+  return c ? String(c) : null
+})
+
+watch(
+  campanhaNaQuery,
+  async (nova, antiga) => {
+    if (nova) {
+      const id = Number(nova)
+      if (Number.isInteger(id)) await chat.abrirCampanha(id)
+    } else if (antiga || chat.abertaPelaCampanha) {
+      chat.novaConversa()
+    } else {
+      await chat.restaurarSessaoSeVazio()
+    }
+  },
+  { immediate: true },
+)
 
 const modalCompartilharAberto = ref(false)
 
@@ -128,13 +143,20 @@ watch(() => mensagens.value.length, async () => {
         </p>
 
         <div class="messages" aria-live="polite">
-          <template v-for="mensagem in mensagens" :key="mensagem.id">
+          <template v-for="mensagem in mensagens" :key="mensagem.chave">
             <FerramentasDropdown
               v-if="mensagem.papel === 'agente' && mensagem.events && mensagem.events.length > 0"
               :events="mensagem.events"
             />
+            <MensagemSistema
+              v-if="mensagem.papel === 'sistema'"
+              :mensagem="mensagem"
+              :carregando="Boolean(mensagem.simulacao_id && simulacoesCarregando.includes(mensagem.simulacao_id))"
+              @ver-resultado="chat.carregarResultadoSimulacao"
+              @aplicar-cenario="chat.aplicarCenario"
+            />
             <ResultadoSimulacao
-              v-if="mensagem.resultado"
+              v-else-if="mensagem.resultado"
               :resultado="mensagem.resultado"
               @aplicar-cenario="chat.aplicarCenario"
             />
@@ -152,7 +174,20 @@ watch(() => mensagens.value.length, async () => {
           <div ref="fimDaConversa" class="fim-da-conversa" />
         </div>
 
-        <div class="chat-input">
+        <div v-if="podeVoltarRascunho" class="chat-voltar-rascunho">
+          <p class="voltar-rascunho-texto">
+            Esta campanha foi reprovada. Edite para voltar a conversar.
+          </p>
+          <button
+            type="button"
+            class="botao-editar-campanha"
+            :disabled="aguardandoLana || simulando || editandoCampanha"
+            @click="chat.editarCampanhaReprovada"
+          >
+            Editar campanha
+          </button>
+        </div>
+        <div v-else class="chat-input">
           <Input :ocupado="ocupado" :placeholder="placeholderDoCampo" @send="chat.enviar" />
         </div>
       </div>
@@ -285,6 +320,51 @@ watch(() => mensagens.value.length, async () => {
 .chat-input--empty {
   padding-bottom: 0;
   background-color: transparent;
+}
+
+.chat-voltar-rascunho {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  padding: 16px 0;
+  background-color: var(--color-black-bg1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.voltar-rascunho-texto {
+  color: var(--color-gray-txt2-dark);
+  font-family: var(--font-raleway);
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+}
+
+.botao-editar-campanha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+  border-radius: 8px;
+  background-color: var(--color-blue);
+  color: var(--color-black-bg1);
+  font-family: var(--font-raleway);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.botao-editar-campanha:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.botao-editar-campanha:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Painel de simulação (tab-simulacao, nó 641:1860): 500px, altura inteira, colado à direita */
