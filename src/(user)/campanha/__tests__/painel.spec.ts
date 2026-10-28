@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PainelAprovacao from '../components/PainelAprovacao.vue'
-import { INTERFERENCIAS_PROVISORIAS } from '../montagem'
-import type { CampanhaAprovacao } from '../types'
+import type { CampanhaAprovacao, Interferencia } from '../types'
+
+const interferencias: Interferencia[] = [
+  { id: 'rh-1', tipo: 'Intercorrência', descricao: 'Férias de MATRIC-58, 10/07 a 24/07' },
+  { id: 'campanha-12-1', tipo: 'Campanha', descricao: 'Semana do Vendedor (aprovada), 20/11 a 28/11' },
+]
 
 // Dado de teste
 const campanha: CampanhaAprovacao = {
   id: 7, versao: 1, titulo: 'Natal 2025', inicio: '01/12', fim: '24/12', duracaoDias: 24,
   sugeridoPor: 'Gabriela', submetidoEm: '25/10', status: 'Sem conflitos', custo: 'R$ 1.000,00',
   custoDetalhe: null, percentual: '+1,5%', alcance: null, detalhe: 'pronto', simulacaoId: 345,
-  interferencias: INTERFERENCIAS_PROVISORIAS, acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'],
+  interferencias, acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'],
 }
 
 function montar(alterar: Partial<CampanhaAprovacao> = {}) {
@@ -82,7 +86,7 @@ describe('PainelAprovacao', () => {
     const painel = montar()
 
     expect(painel.text()).toContain('Interferências')
-    expect(painel.text()).toContain('Sem estoque de produtos da marca Cinza')
+    expect(painel.text()).toContain('Férias de MATRIC-58, 10/07 a 24/07')
     expect(painel.text()).not.toContain('Limites da simulação')
     painel.unmount()
   })

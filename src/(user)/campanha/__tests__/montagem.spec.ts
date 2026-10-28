@@ -83,6 +83,38 @@ describe('montagem dos cards de aprovação', () => {
     expect(montarJustificativa('Reduzir', [{ tipo: 'Campanha', descricao: '+0,25% vigente' }]))
       .toBe('Reduzir\n\nInterferências citadas:\n- Campanha: +0,25% vigente')
   })
+
+  it('interferências vêm da versão: eventos de RH e conflitos reais, vazias sem eles', () => {
+    const versao = {
+      campanha_id: 7, numero: 1, status: 'AGUARDANDO_APROVACAO', autor: { id: 1, nome: 'Gabriela' },
+      submetida_em: '2026-11-16T15:00:00Z', simulacao_id: 3, resimulacao_necessaria: false, decisao: null,
+      regra: regraBlackFriday(), resultado: { ...resultadoBlackFriday(), conflitos: [] },
+      acoes: ['APROVAR', 'REPROVAR', 'RESIMULAR'], aprovadas_depois: [], resimulacao: null,
+    } satisfies VersaoCampanha
+    const cartao = cartaoDaFila(itemDaFila())
+    expect(cartao.interferencias).toEqual([])
+    expect(comVersao(cartao, versao).interferencias).toEqual([])
+
+    const comDados = comVersao(cartao, {
+      ...versao,
+      intercorrencias: [{
+        tipo: 'afastamento', matricula: 'MATRIC-58', cargo: '100', data_inicio: '2025-07-10',
+        data_fim: '2025-07-24', origem: 'Especificacao jul/2025 item a',
+      }],
+      resultado: {
+        ...resultadoBlackFriday(),
+        conflitos: [{
+          campanha_id: 12, versao: 1, tipo: 'ACRESCIMO', nome: 'Semana do Vendedor', status: 'APROVADA',
+          autor: 'Sérgio', data_inicio: '2025-11-20', data_fim: '2025-11-28',
+          sobreposicao: { data_inicio: '2025-11-20', data_fim: '2025-11-28' }, marcas: ['10'], cargos: ['100'],
+        }],
+      },
+    })
+    expect(comDados.interferencias?.map((item) => `${item.tipo}: ${item.descricao}`)).toEqual([
+      'Intercorrência: Afastamento de MATRIC-58 (Vendedor loja), 10/07 a 24/07',
+      'Campanha: Semana do Vendedor (aprovada), 20/11 a 28/11',
+    ])
+  })
 })
 
 describe('linhaAprovada (Campanhas Passadas)', () => {

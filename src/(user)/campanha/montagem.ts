@@ -3,8 +3,9 @@ import { NOMES_CARGO, NOMES_MARCA } from '../chat/rotulos'
 import type { Periodo, RegraCampanha } from '../chat/types'
 import type { ListaCampanha } from './components/ListaCampanha.vue'
 import type { Tabela } from './components/TabelaCampanhas.vue'
+import { interferenciasDaVersao } from './interferencias'
 import type {
-  CampanhaAprovacao, CampanhaAprovada, CampanhaResumo, FilaCampanha, Interferencia, ItemDetalhe, PeriodoCampanha,
+  CampanhaAprovacao, CampanhaAprovada, CampanhaResumo, FilaCampanha, ItemDetalhe, PeriodoCampanha,
   VersaoCampanha,
 } from './types'
 
@@ -12,15 +13,6 @@ const TODAS_AS_MARCAS = 'ALL'
 /** Marcas da base (10 a 60): o backend devolve as seis quando a regra pediu "ALL". */
 const QUANTIDADE_DE_MARCAS = 6
 
-/**
- * Exemplos fixos até o backend ter rota de interferências (eventos de RH e campanhas sobrepostas):
- * mantêm a seção e as menções na devolução funcionando.
- */
-export const INTERFERENCIAS_PROVISORIAS: Interferencia[] = [
-  { id: 1, tipo: 'Intercorrência', descricao: 'Faltas abonadas para Vendedores loja na semana' },
-  { id: 2, tipo: 'Campanha', descricao: 'Acréscimo de +0,25% para Vendedores loja' },
-  { id: 3, tipo: 'Intercorrência', descricao: 'Sem estoque de produtos da marca Cinza' },
-]
 const DIA_MES = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
 
 export function diaMesDeData(iso: string): string {
@@ -62,7 +54,8 @@ function cartaoBase(
     percentual: null,
     alcance: null,
     detalhe: campos.versao === null ? 'indisponivel' : 'carregando',
-    interferencias: INTERFERENCIAS_PROVISORIAS,
+    // Vêm da versão (eventos de RH e conflitos reais); até ela carregar, o bloco fica escondido.
+    interferencias: [],
   }
 }
 
@@ -140,6 +133,7 @@ export function comVersao(cartao: CampanhaAprovacao, versao: VersaoCampanha): Ca
     cargos: cargos.map((codigo) => NOMES_CARGO[codigo] ?? codigo),
     marcas: marcas.map((codigo) => NOMES_MARCA[codigo] ?? codigo),
     conflitos: resultado.conflitos,
+    interferencias: interferenciasDaVersao(versao.intercorrencias ?? [], resultado.conflitos ?? []),
     acoes: versao.acoes,
     avisoResimulacao: avisoDeResimulacao(versao),
     custoResimulado: versao.resimulacao ? formatarMoeda(versao.resimulacao.resultado.totais.diferenca) : null,

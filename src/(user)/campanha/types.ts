@@ -65,6 +65,19 @@ export interface ResimulacaoVersao {
   resultado: ResultadoSimulacao
 }
 
+export type TipoIntercorrencia = 'afastamento' | 'ferias' | 'licenca_maternidade' | 'demissao'
+
+/** Evento de RH da especificação que cruza o período e o escopo da versão (evento_rh). */
+export interface IntercorrenciaVersao {
+  tipo: TipoIntercorrencia
+  matricula: string
+  cargo: string | null
+  data_inicio: string
+  /** null na demissão e na licença sem término. */
+  data_fim: string | null
+  origem: string
+}
+
 /** GET /api/campanhas/{id}/versoes/{numero}: a versão congelada na submissão. */
 export interface VersaoCampanha {
   campanha_id: number
@@ -80,6 +93,8 @@ export interface VersaoCampanha {
   aprovadas_depois: AprovadaDepois[]
   resimulacao: ResimulacaoVersao | null
   decisao: DecisaoCampanha | null
+  /** Opcional: um backend anterior às interferências reais não manda o campo. */
+  intercorrencias?: IntercorrenciaVersao[]
 }
 
 /** Itens de `acoes` da Campanha (contrato 5.2), na ordem dos botões: o front não deduz nada do status. */

@@ -1,3 +1,5 @@
+import type { StatusConflito } from './types'
+
 // Nomes curtos para a interface. O catálogo da Lana traz rótulos longos em caixa-alta
 // ("VENDEDOR BALCAO", "PRETO (10)"), que ocupam muito espaço no painel e no resultado.
 
@@ -39,4 +41,9 @@ export function rotuloCargo(codigo: string): string {
   if (codigo.includes('(')) return codigo
   const nome = NOMES_CARGO[codigo]
   return nome ? `${nome} (${codigo})` : codigo
+}
+
+/** Status do conflito entre campanhas, em minúsculas. Ex.: statusLegivelConflito('APROVADA') -> 'aprovada' */
+export function statusLegivelConflito(status: StatusConflito): string {
+  return status === 'APROVADA' ? 'aprovada' : 'aguardando aprovação'
 }

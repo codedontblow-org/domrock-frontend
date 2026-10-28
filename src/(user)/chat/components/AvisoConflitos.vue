@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { formatarTrecho } from '../formatacao'
-import { rotuloCargo, rotuloMarca } from '../rotulos'
-import type { ConflitoCampanha, StatusConflito } from '../types'
+import { rotuloCargo, rotuloMarca, statusLegivelConflito } from '../rotulos'
+import type { ConflitoCampanha } from '../types'
 
 // Alerta de conflito entre campanhas com períodos/marcas sobrepostos (A6-74 e A6-75).
 defineProps<{ conflitos?: ConflitoCampanha[] }>()
-
-function statusLegivel(status: StatusConflito): string {
-  return status === 'APROVADA' ? 'aprovada' : 'aguardando aprovação'
-}
 
 function marcasFormatadas(marcas: string[]): string {
   return marcas.map(rotuloMarca).join(', ')
@@ -27,7 +23,7 @@ function chaveConflito(conflito: ConflitoCampanha): string {
   <div v-if="conflitos && conflitos.length > 0" class="avisos" role="status">
     <p v-for="conflito in conflitos" :key="chaveConflito(conflito)">
       <i class="bi bi-exclamation-triangle" aria-hidden="true" />
-      Esta campanha se sobrepõe a {{ conflito.nome }} ({{ statusLegivel(conflito.status) }}) em
+      Esta campanha se sobrepõe a {{ conflito.nome }} ({{ statusLegivelConflito(conflito.status) }}) em
       {{ formatarTrecho(conflito.sobreposicao.data_inicio, conflito.sobreposicao.data_fim) }} para marcas
       {{ marcasFormatadas(conflito.marcas) }}, cargos {{ cargosFormatados(conflito.cargos) }}.
     </p>
